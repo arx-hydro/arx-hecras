@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# PyInstaller
+build/
+dist/
+
+# HEC-RAS temp/runtime files
+HECRAS_*/
+*.computeMsgs.txt
+systemInfoEncoded.txt
+
+# DSS/HDF output (large binary files)
+# Note: tests/ files are tracked intentionally as test data
+*.dss
+*.dsc.h5
+*.hdf
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+*.env.local
+
+# Claude Code
+.claude/
+
+# Local working files
+external/
+PLAN.md
+*.log
+*.tmp
+*.bak
