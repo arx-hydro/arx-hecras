@@ -1,16 +1,13 @@
 # HEC-RAS Parallel Runner
 
-Tkinter GUI application for configuring and running HEC-RAS plans in parallel.
+Parallel HEC-RAS simulation tool with GUI, packaged as a standalone Windows executable.
 
-## What's New (v5)
+## What's New (v6)
 
-- **Full GUI** with file browser dialogs — no more editing hardcoded paths
-- **Per-plan configuration** — set plan, geometry, and flow suffixes independently
-- **Parallel/sequential toggle** — run plans concurrently or one at a time
-- **Optional temp cleanup** — checkbox to preserve or delete temp files
-- **Threaded execution** — GUI stays responsive during simulation
-- **Real-time log panel** — monitor progress with timestamped messages
-- Headless `run_hecras_parallel.py` retained for scripted/CLI use
+- **PyInstaller packaging** — distributable `.exe` with no Python install required
+- Two build targets:
+  - `HECRAS_Parallel_Runner.spec` — windowed (no console)
+  - `HECRAS_Parallel_Runner_Debug.spec` — with console for troubleshooting
 
 ## Files
 
@@ -18,16 +15,29 @@ Tkinter GUI application for configuring and running HEC-RAS plans in parallel.
 |------|---------|
 | `hecras_gui_runner.py` | Tkinter GUI application |
 | `run_hecras_parallel.py` | Headless CLI runner |
+| `HECRAS_Parallel_Runner.spec` | PyInstaller spec — windowed exe |
+| `HECRAS_Parallel_Runner_Debug.spec` | PyInstaller spec — console exe |
+
+## Building
+
+```
+pip install pyinstaller pywin32
+pyinstaller HECRAS_Parallel_Runner.spec
+```
+
+Output: `dist/HECRAS_Parallel_Runner.exe` (~16 MB)
 
 ## Usage
 
-**GUI mode:**
+**From exe:** double-click `HECRAS_Parallel_Runner.exe`
+
+**From source (GUI):**
 
 ```
 python hecras_gui_runner.py
 ```
 
-**Headless mode** (edit paths in script first):
+**From source (headless):**
 
 ```
 python run_hecras_parallel.py
@@ -35,10 +45,8 @@ python run_hecras_parallel.py
 
 ## Requirements
 
-- Python 3.x
-- HEC-RAS 6.6
-- `pywin32`
-- `tkinter` (included with Python)
+- HEC-RAS 6.6 installed on target machine
+- For running from source: Python 3.x + `pywin32`
 
 ## Author
 
