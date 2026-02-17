@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arx-hecras — Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            color: #212529;
+        }
+        h1 { color: #1a1a2e; border-bottom: 2px solid #16213e; padding-bottom: 0.5rem; }
+        h2 { color: #16213e; margin-top: 2.5rem; }
+        .diagram { background: white; border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        p, li { line-height: 1.6; }
+        code { background: #e9ecef; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>arx-hecras — Architecture</h1>
+    <p>How the HEC-RAS Parallel Runner works, from user input to simulation results.</p>
+
+    <!-- ============================================================ -->
+    <h2>1. Overall System Flow</h2>
+    <p>The tool has two entry points (GUI and CLI) that share the same execution pipeline.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+flowchart TB
+    subgraph Entry["Entry Points"]
+        GUI["hecras_gui_runner.py<br/><i>Tkinter GUI</i>"]
+        CLI["run_hecras_parallel.py<br/><i>Headless CLI</i>"]
+    end
+
+    subgraph Pipeline["Shared Execution Pipeline"]
+        CHECK["Check HEC-RAS<br/>Installation"]
+        PREP["Prepare Temp<br/>Directories"]
+        RUN["Launch Parallel<br/>Processes"]
+        WAIT["Wait for All<br/>to Complete"]
+        HARVEST["Copy Results<br/>Back"]
+        CLEAN["Cleanup Temp<br/>Directories"]
+    end
+
+    GUI -->|"threading.Thread"| CHECK
+    CLI --> CHECK
+    CHECK -->|"COM: Dispatch + QuitRas"| PREP
+    PREP --> RUN
+    RUN --> WAIT
+    WAIT --> HARVEST
+    HARVEST --> CLEAN
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>2. Temp Directory Isolation</h2>
+    <p>HEC-RAS locks project files during computation. Each plan runs against its
+    own copy in a temp directory, preventing file access conflicts.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+    subgraph Original["Original Project Folder"]
+        PRJ["PRtest1.prj"]
+        G01["PRtest1.g01"]
+        P03["PRtest1.p03"]
+        P04["PRtest1.p04"]
+        U03["PRtest1.u03"]
+        U04["PRtest1.u04"]
+        DSS["100yCC_2024.dss"]
+        TERRAIN["Terrain/"]
+    end
+
+    PRJ -->|"shutil.copy2<br/>+ copytree"| T1
+    PRJ -->|"shutil.copy2<br/>+ copytree"| T2
+
+    subgraph T1["HECRAS_xxxx (temp 1)"]
+        T1PRJ["PRtest1.prj"]
+        T1P["PRtest1.p03"]
+        T1U["PRtest1.u03<br/><i>DSS path patched</i>"]
+    end
+
+    subgraph T2["HECRAS_yyyy (temp 2)"]
+        T2PRJ["PRtest1.prj"]
+        T2P["PRtest1.p04"]
+        T2U["PRtest1.u04<br/><i>DSS path patched</i>"]
+    end
+
+    T1 -->|"Results copied back<br/>by extension + suffix"| Original
+    T2 -->|"Results copied back<br/>by extension + suffix"| Original
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>3. DSS Path Patching</h2>
+    <p>When a plan references an external DSS file (e.g. HEC-HMS hydrograph input),
+    the path in <code>.u##</code> files must point back to the original location
+    since the temp directory is elsewhere on disk.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+    COPY["All files copied<br/>to temp dir"] --> SCAN["Scan temp dir for<br/>.u01 .u02 .u03 .u04"]
+    SCAN --> READ["Read .u file line by line"]
+    READ --> FOUND{"Line contains<br/>'DSS File='?"}
+    FOUND -->|Yes| REPLACE["Replace with<br/>original absolute path"]
+    FOUND -->|No| KEEP["Keep line as-is"]
+    REPLACE --> WRITE["Write modified<br/>file back"]
+    KEEP --> WRITE
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>4. Process Architecture</h2>
+    <p>The GUI runs simulation logic in a background thread. Each plan gets its own
+    child process with an independent COM connection to a separate HEC-RAS instance.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+flowchart TB
+    subgraph MainProcess["Main Process"]
+        subgraph UIThread["UI Thread (tkinter)"]
+            WIDGETS["GUI Widgets"]
+            QUEUE_READ["queue.Queue<br/>reader<br/><i>100ms polling</i>"]
+            LOG["Log Panel"]
+            QUEUE_READ --> LOG
+        end
+        subgraph WorkerThread["Worker Thread"]
+            PREP2["Prepare temp dirs"]
+            LAUNCH["Launch processes"]
+            JOIN["Join processes"]
+            COPY_BACK["Copy results back"]
+            PREP2 --> LAUNCH --> JOIN --> COPY_BACK
+        end
+    end
+
+    subgraph Child1["Child Process 1"]
+        COM1["pythoncom.CoInitialize()"]
+        RAS1["RAS66.HECRASController"]
+        HEC1["HEC-RAS 6.6 Instance"]
+        COM1 --> RAS1 --> HEC1
+    end
+
+    subgraph Child2["Child Process 2"]
+        COM2["pythoncom.CoInitialize()"]
+        RAS2["RAS66.HECRASController"]
+        HEC2["HEC-RAS 6.6 Instance"]
+        COM2 --> RAS2 --> HEC2
+    end
+
+    LAUNCH -->|"multiprocessing.Process"| Child1
+    LAUNCH -->|"multiprocessing.Process"| Child2
+
+    WorkerThread -.->|"log_queue.put()"| QUEUE_READ
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>5. COM Automation Sequence</h2>
+    <p>Each child process follows this sequence to drive a HEC-RAS instance.
+    The entire lifecycle happens inside a single <code>multiprocessing.Process</code>.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+    participant P as Child Process
+    participant COM as pythoncom
+    participant RAS as HECRASController
+    participant HEC as HEC-RAS 6.6
+
+    P->>COM: CoInitialize()
+    P->>RAS: Dispatch("RAS66.HECRASController")
+    P->>RAS: ShowRas()
+    RAS->>HEC: Launch GUI window
+
+    P->>RAS: Project_Open(temp_path)
+    RAS->>HEC: Load project files
+    Note over P: sleep(3)
+
+    P->>RAS: Plan_SetCurrent(plan_name)
+    Note over P: sleep(2)
+
+    P->>RAS: Compute_CurrentPlan()
+    RAS->>HEC: Start simulation
+
+    loop Every 5 seconds
+        P->>RAS: Compute_Complete()
+        RAS-->>P: 0 (still running)
+    end
+
+    RAS-->>P: 1 (complete)
+    P->>RAS: Project_Close()
+    P->>RAS: QuitRas()
+    RAS->>HEC: Close GUI window
+    P->>COM: CoUninitialize()
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>6. Result Harvesting</h2>
+    <p>After all processes complete, result files are copied from each temp directory
+    back to the original project folder, matched by extension and plan suffix number.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+    subgraph Temp["Temp Directory"]
+        ALL["All files in<br/>temp dir"]
+    end
+
+    ALL --> MATCH{"File ends with<br/>.{ext}{suffix}?"}
+
+    MATCH -->|".p03"| COPY
+    MATCH -->|".u03"| COPY
+    MATCH -->|".g03"| COPY
+    MATCH -->|".b03"| COPY
+    MATCH -->|".bco03"| COPY
+    MATCH -->|".dss03"| COPY
+    MATCH -->|".ic.o03"| COPY
+    MATCH -->|".x03"| COPY
+    MATCH -->|".p03.hdf"| COPY
+    MATCH -->|"other"| SKIP["Skip"]
+
+    subgraph Exts["Matched Extensions"]
+        COPY["shutil.copy2<br/>to original dir"]
+    end
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>7. GUI vs CLI Differences</h2>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+flowchart TB
+    subgraph gui["hecras_gui_runner.py"]
+        G_INPUT["File browser dialogs<br/>for .prj and .dss"]
+        G_PLANS["Plan tree widget<br/>(add/remove plans)"]
+        G_OPTS["Checkboxes:<br/>parallel, cleanup"]
+        G_THREAD["Background thread<br/>for execution"]
+        G_LOG["Scrolling log panel<br/>with timestamps"]
+        G_COPY["Copies only newer<br/>files back"]
+
+        G_INPUT --> G_PLANS --> G_OPTS --> G_THREAD --> G_LOG
+    end
+
+    subgraph cli["run_hecras_parallel.py"]
+        C_INPUT["Hardcoded paths<br/>in run_simulations()"]
+        C_PLANS["Hardcoded plan list<br/>with (name, dss, suffix)"]
+        C_OPTS["Always parallel<br/>always cleanup"]
+        C_DIRECT["Direct execution<br/>in main process"]
+        C_LOG["print() to console"]
+        C_COPY["Copies by extension<br/>+ suffix matching"]
+
+        C_INPUT --> C_PLANS --> C_OPTS --> C_DIRECT --> C_LOG
+    end
+        </pre>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2>8. HEC-RAS Project File Structure</h2>
+    <p>How the test project components reference each other.</p>
+    <!-- ============================================================ -->
+    <div class="diagram">
+        <pre class="mermaid">
+graph TD
+    PRJ["<b>PRtest1.prj</b><br/>Project File"]
+
+    PRJ -->|"Geom File=g01"| G01["<b>PRtest1.g01</b><br/>Geometry: geoBR<br/>2D, 1095 mesh cells"]
+
+    PRJ -->|"Plan File=p01"| P01["<b>PRtest1.p01</b><br/>plan01"]
+    PRJ -->|"Plan File=p02"| P02["<b>PRtest1.p02</b><br/>plan02"]
+    PRJ -->|"Plan File=p03"| P03["<b>PRtest1.p03</b><br/>plan03"]
+    PRJ -->|"Plan File=p04"| P04["<b>PRtest1.p04</b><br/>plan04"]
+
+    PRJ -->|"Unsteady File=u01"| U01["<b>PRtest1.u01</b><br/>unsteady01<br/>peak ~5 m³/s"]
+    PRJ -->|"Unsteady File=u02"| U02["<b>PRtest1.u02</b><br/>unsteady02<br/>peak ~10 m³/s"]
+    PRJ -->|"Unsteady File=u03"| U03["<b>PRtest1.u03</b><br/>unsteady03<br/>peak ~10 m³/s"]
+    PRJ -->|"Unsteady File=u04"| U04["<b>PRtest1.u04</b><br/>unsteady04<br/>peak ~20 m³/s"]
+
+    P01 -->|"Geom File=g01"| G01
+    P02 -->|"Geom File=g01"| G01
+    P03 -->|"Geom File=g01"| G01
+    P04 -->|"Geom File=g01"| G01
+
+    P01 -->|"Flow File=u01"| U01
+    P02 -->|"Flow File=u02"| U02
+    P03 -->|"Flow File=u03"| U03
+    P04 -->|"Flow File=u04"| U04
+
+    G01 -->|"references"| TERRAIN["<b>Terrain/</b><br/>existing_02.hdf"]
+    G01 -->|"references"| LAND["<b>Land Classification/</b><br/>LandCover.tif"]
+
+    PRJ -->|"DSS File="| DSS["<b>100yCC_2024.dss</b><br/>HEC-HMS input"]
+
+    style PRJ fill:#4a90d9,color:white
+    style P01 fill:#5ba55b,color:white
+    style P02 fill:#5ba55b,color:white
+    style P03 fill:#5ba55b,color:white
+    style P04 fill:#5ba55b,color:white
+    style G01 fill:#d4a44a,color:white
+    style U01 fill:#d97a4a,color:white
+    style U02 fill:#d97a4a,color:white
+    style U03 fill:#d97a4a,color:white
+    style U04 fill:#d97a4a,color:white
+    style TERRAIN fill:#888,color:white
+    style LAND fill:#888,color:white
+    style DSS fill:#9b59b6,color:white
+        </pre>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'neutral',
+            flowchart: { curve: 'basis', padding: 15 },
+            sequence: { mirrorActors: false }
+        });
+    </script>
+</body>
+</html>
