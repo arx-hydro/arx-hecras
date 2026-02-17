@@ -1,29 +1,29 @@
 # HEC-RAS Parallel Runner
 
-Parallel HEC-RAS execution with automated temp directory isolation.
+Cleaned up parallel runner with bug fixes and generic test project.
 
-## What's New (v2)
+## What's New (v3)
 
-- **Automated temp directories** — no more manual project duplication
-- `copy_project_to_temp()` clones the full project folder per plan
-- `copy_results_to_main_project()` harvests results back by extension
-- DSS file path patching in unsteady flow files (`.u15`, `.u17`)
+- **Fixed:** DSS path update now runs once after all files are copied
+- **Fixed:** Result copy-back now includes `u` and `g` extensions
+- Switched to generic `C:\Test\PRtest1.prj` for development/testing
+- Uses `Compute_Complete()` for polling (replacing `Processing_Status`)
+- DSS patching targets `.u03`/`.u04` for the test project
 
 ## How It Works
 
-1. Copies the entire HEC-RAS project folder to a temp directory per plan
-2. Patches `DSS File=` paths in `.u` files for the temp location
-3. Launches each plan as a separate process via COM
-4. Waits for all processes to complete
-5. Copies result files back to the original project directory
+1. Copies the HEC-RAS project to a temp directory per plan
+2. Patches `DSS File=` paths in `.u` files (after full copy completes)
+3. Launches each plan in a separate process via COM
+4. Polls `Compute_Complete()` until done
+5. Copies result files (`.p`, `.u`, `.x`, `.g`, `.c`, `.b`, `.bco`, `.dss`, `.ic.o`, `.hdf`) back
 
 ## Known Issues
 
-- DSS path update runs inside the file copy loop (executes repeatedly per file)
-- Result copy-back is missing `u` and `g` extensions from the list
-- No temp directory cleanup after execution
-- No HEC-RAS installation verification
-- Hardcoded to HAFEET project paths
+- Mixed indentation (tabs/spaces) in `copy_project_to_temp()` and `run_simulations()`
+- No temp directory cleanup
+- No HEC-RAS installation check before running
+- Hardcoded project paths — edit `run_simulations()` before use
 
 ## Requirements
 
