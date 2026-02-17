@@ -10,8 +10,9 @@ Flow Hydrograph= 37
        2     1.1      .5      .3      .2      .1       0
 Stage Hydrograph TW Check=0
 Flow Hydrograph Slope= 0.01 
-DSS Path=
-Use DSS=False
+DSS File=100yCC_2024.dss
+DSS Path=//PB_M2_B_1AL/FLOW/31Dec2023-03Jan2024/5Minute/RUN:100yCC 2024/
+Use DSS=True
 Use Fixed Start Time=False
 Fixed Start Date/Time=,
 Is Critical Boundary=False
@@ -25,9 +26,9 @@ Flow Hydrograph= 37
       .4     .22      .1     .06     .04     .02       0
 Stage Hydrograph TW Check=0
 Flow Hydrograph Slope= 0.01 
-DSS File=..\Users\Siamak.Farrokhzadeh\Pini Group\PINI-MENA - XXXXXX_HAFEET\07_Hydro\HECHMS\WADI SHA rev\100yCC_2024.dss
+DSS File=100yCC_2024.dss
 DSS Path=//PB_M2_B_1BA/FLOW/31Dec2023-03Jan2024/5Minute/RUN:100yCC 2024/
-Use DSS=False
+Use DSS=True
 Use Fixed Start Time=False
 Fixed Start Date/Time=01JAN2024,0000
 Is Critical Boundary=False
@@ -93,17 +94,17 @@ Met BC=Air Pressure|Constant Units=mb
 Met BC=Air Pressure|Point Interpolation=Inv Distance
 Met BC=Air Pressure|Gridded Source=DSS
 Met BC=Air Pressure|Gridded Interpolation=
-Non-Newtonian Method= 0 , 
+Non-Newtonian Method= 0 ,  
 Non-Newtonian Constant Vol Conc=0
-Non-Newtonian Yield Method= 0 , 
+Non-Newtonian Yield Method= 0 ,  
 Non-Newtonian Yield Coef=0, 0
 User Yeild=   0
-Non-Newtonian Sed Visc= 0 , 
+Non-Newtonian Sed Visc= 0 ,  
 Non-Newtonian Obrian B=0
 User Viscosity=0
 User Viscosity Ratio=0
 Herschel-Bulkley Coef=0, 0
-Clastic Method= 0 , 
+Clastic Method= 0 ,  
 Coulomb Phi=0
 Voellmy X=0
 Non-Newtonian Hindered FV= 0 
