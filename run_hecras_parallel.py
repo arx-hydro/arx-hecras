@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jun  2 09:25:24 2025
+Spyder Editor
 
-@author: Siamak.Farrokhzadeh
+This is a temporary script file.
 """
 
 import win32com.client
@@ -24,7 +24,7 @@ def run_hecras(project_path, plan_name, log_path):
 
             log_print(f"Starting HEC-RAS for: {project_path}, Plan: {plan_name}")
             ras = win32com.client.Dispatch("RAS66.HECRASController")
-            # ras.ShowRas()  # Commented to avoid GUI popups, which block parallel execution
+            ras.ShowRas()
             time.sleep(2)
 
             ras.Project_Open(project_path)
@@ -32,17 +32,8 @@ def run_hecras(project_path, plan_name, log_path):
             ras.Plan_SetCurrent(plan_name)
             ras.Compute_CurrentPlan()
 
-            # Wait for completion manually by polling output file or checking process
-            # If Processing_Status doesn't work, assume time delay or check logs
-            time.sleep(5)
-            while True:
-                try:
-                    status = ras.Processing_Status
-                    if status == 0:
-                        break
-                except:
-                    pass
-                log_print(f"[{plan_name}] Still running...")
+            while ras.Processing_Status != 0:
+                log_print(f"[{plan_name}] Simulation running...")
                 time.sleep(5)
 
             log_print(f"[{plan_name}] Simulation complete.")
@@ -58,12 +49,12 @@ def run_hecras(project_path, plan_name, log_path):
 
 def main():
     base_paths = [
-        r"C:\Users\Siamak.Farrokhzadeh\Pini Group\PINI-MENA - AB\T1\Model",
-        r"C:\Users\Siamak.Farrokhzadeh\Pini Group\PINI-MENA - AB\T1\Model1"
+        r"C:\Projects\Run1",
+        r"C:\Projects\Run2"
     ]
     plans = [
-        "T1_100yrs_30CC_03",
-        "T1_100yrs_30CC_V01"
+        "T1_100yrs_30CC_V01",
+        "T1_100yrs_30CC_03"
     ]
     project_file = "DCP2_AB.prj"
 
@@ -82,5 +73,4 @@ def main():
     print("All simulations completed. Check log files in each run directory.")
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method('spawn')  # Important on Windows
     main()

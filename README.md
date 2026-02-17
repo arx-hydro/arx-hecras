@@ -1,28 +1,29 @@
 # HEC-RAS Parallel Runner
 
-First prototype for running HEC-RAS simulations in parallel using Python
-multiprocessing and COM automation.
+Parallel HEC-RAS execution with automated temp directory isolation.
 
-## Approach
+## What's New (v2)
 
-Each HEC-RAS plan runs in its own process via COM. The user manually
-duplicates the project into separate directories before running (e.g.
-`Model/` and `Model1/`). Each process writes a log file for troubleshooting.
+- **Automated temp directories** — no more manual project duplication
+- `copy_project_to_temp()` clones the full project folder per plan
+- `copy_results_to_main_project()` harvests results back by extension
+- DSS file path patching in unsteady flow files (`.u15`, `.u17`)
 
-## Features
+## How It Works
 
-- Parallel execution via `multiprocessing.Process`
-- Per-process log files with timestamped output
-- `Processing_Status` polling for completion detection
-- `multiprocessing.set_start_method('spawn')` for Windows compatibility
+1. Copies the entire HEC-RAS project folder to a temp directory per plan
+2. Patches `DSS File=` paths in `.u` files for the temp location
+3. Launches each plan as a separate process via COM
+4. Waits for all processes to complete
+5. Copies result files back to the original project directory
 
-## Limitations
+## Known Issues
 
-- Windows only (COM: `RAS66.HECRASController`)
-- Requires manual project duplication before each run
-- Hardcoded project paths — edit `main()` before use
-- 1D models only (COM has no 2D support)
-- No automatic result collection
+- DSS path update runs inside the file copy loop (executes repeatedly per file)
+- Result copy-back is missing `u` and `g` extensions from the list
+- No temp directory cleanup after execution
+- No HEC-RAS installation verification
+- Hardcoded to HAFEET project paths
 
 ## Requirements
 
