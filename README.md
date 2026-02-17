@@ -1,27 +1,33 @@
 # HEC-RAS Parallel Runner
 
-Production-ready headless runner with installation checks and cleanup.
+Tkinter GUI application for configuring and running HEC-RAS plans in parallel.
 
-## What's New (v4)
+## What's New (v5)
 
-- **HEC-RAS installation check** before running any simulations
-- **Proper COM cleanup** — `QuitRas()` and `CoUninitialize()` in `finally` blocks
-- **Temp directory cleanup** after all results are copied back
-- **PyInstaller support** — `resource_path()` helper for packaged `.exe`
-- Improved error handling with `try/finally` throughout
+- **Full GUI** with file browser dialogs — no more editing hardcoded paths
+- **Per-plan configuration** — set plan, geometry, and flow suffixes independently
+- **Parallel/sequential toggle** — run plans concurrently or one at a time
+- **Optional temp cleanup** — checkbox to preserve or delete temp files
+- **Threaded execution** — GUI stays responsive during simulation
+- **Real-time log panel** — monitor progress with timestamped messages
+- Headless `run_hecras_parallel.py` retained for scripted/CLI use
 
-## How It Works
+## Files
 
-1. Verifies HEC-RAS 6.6 is installed and COM-registered
-2. Copies the project to a temp directory per plan
-3. Patches DSS paths in unsteady flow files
-4. Launches parallel processes via COM
-5. Copies result files back to the main project
-6. Cleans up all temp directories
+| File | Purpose |
+|------|---------|
+| `hecras_gui_runner.py` | Tkinter GUI application |
+| `run_hecras_parallel.py` | Headless CLI runner |
 
 ## Usage
 
-Edit the paths in `run_simulations()`, then:
+**GUI mode:**
+
+```
+python hecras_gui_runner.py
+```
+
+**Headless mode** (edit paths in script first):
 
 ```
 python run_hecras_parallel.py
@@ -32,6 +38,7 @@ python run_hecras_parallel.py
 - Python 3.x
 - HEC-RAS 6.6
 - `pywin32`
+- `tkinter` (included with Python)
 
 ## Author
 
