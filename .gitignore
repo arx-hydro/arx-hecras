@@ -19,12 +19,22 @@ dist/
 # HEC-RAS temp/runtime files
 HECRAS_*/
 *.computeMsgs.txt
+*.rasmap.backup
 systemInfoEncoded.txt
 
-# DSS/HDF output (large binary files)
+# HEC-RAS generated output (large binary files)
 *.dss
 *.dsc.h5
 *.hdf
+*.bco[0-9][0-9]
+*.ic.o[0-9][0-9]
+*.x[0-9][0-9]
+
+# Test project source data (override ignores above)
+!tests/PRtest1.g01.hdf
+!tests/Terrain/existing_02/existing_02.hdf
+!tests/Land Classification/LandCover.hdf
+!tests/100yCC_2024.dss
 
 # OS files
 Thumbs.db
