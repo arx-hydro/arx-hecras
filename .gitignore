@@ -22,7 +22,6 @@ HECRAS_*/
 systemInfoEncoded.txt
 
 # DSS/HDF output (large binary files)
-# Note: tests/ files are tracked intentionally as test data
 *.dss
 *.dsc.h5
 *.hdf
