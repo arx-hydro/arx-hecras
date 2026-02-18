@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['hecras_gui_runner.py'],
-    pathex=[],
+    ['src/hecras_runner/gui.py'],
+    pathex=['src'],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['win32com', 'win32com.client', 'pythoncom', 'pywintypes'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -10,7 +10,7 @@ Flow Hydrograph= 37
        4     2.2       1      .6      .4      .2       0
 Stage Hydrograph TW Check=0
 Flow Hydrograph Slope= 0.01 
-DSS File=C:\Test\100yCC_2024.dss
+DSS File=100yCC_2024.dss
 DSS Path=//PB_M2_B_1AF/FLOW/31Dec2023-03Jan2024/5Minute/RUN:100yCC 2024/
 Use DSS=True
 Use Fixed Start Time=False
@@ -26,7 +26,7 @@ Flow Hydrograph= 37
       .4     .22      .1     .06     .04     .02       0
 Stage Hydrograph TW Check=0
 Flow Hydrograph Slope= 0.01 
-DSS File=C:\Test\100yCC_2024.dss
+DSS File=100yCC_2024.dss
 DSS Path=//PB_M2_B_3/FLOW/31Dec2023-03Jan2024/5Minute/RUN:100yCC 2024/
 Use DSS=True
 Use Fixed Start Time=False

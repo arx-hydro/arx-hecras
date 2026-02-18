@@ -2,52 +2,62 @@
 
 Parallel HEC-RAS simulation tool with GUI, packaged as a standalone Windows executable.
 
-## What's New (v6)
+## Package Structure
 
-- **PyInstaller packaging** — distributable `.exe` with no Python install required
-- Two build targets:
-  - `HECRAS_Parallel_Runner.spec` — windowed (no console)
-  - `HECRAS_Parallel_Runner_Debug.spec` — with console for troubleshooting
+```
+src/hecras_runner/
+    __init__.py       # version
+    parser.py         # Parse .prj/.p##/.g##/.u## files
+    file_ops.py       # Temp copy, DSS patching, result copy-back
+    runner.py         # COM wrapper + orchestration
+    cli.py            # argparse CLI entry point
+    __main__.py       # enables python -m hecras_runner
+    gui.py            # Tkinter GUI
+```
 
-## Files
+## Setup
 
-| File | Purpose |
-|------|---------|
-| `hecras_gui_runner.py` | Tkinter GUI application |
-| `run_hecras_parallel.py` | Headless CLI runner |
-| `HECRAS_Parallel_Runner.spec` | PyInstaller spec — windowed exe |
-| `HECRAS_Parallel_Runner_Debug.spec` | PyInstaller spec — console exe |
+```
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e ".[dev]"
+```
+
+## Usage
+
+**GUI (exe):** double-click `HECRAS_Parallel_Runner.exe`
+
+**GUI (from source):**
+```
+python src/hecras_runner/gui.py
+```
+
+**CLI:**
+```
+python -m hecras_runner project.prj --list
+python -m hecras_runner project.prj --all
+python -m hecras_runner project.prj --plans plan01 plan03
+python -m hecras_runner project.prj --all --sequential --no-cleanup
+```
 
 ## Building
 
 ```
-pip install pyinstaller pywin32
+pip install -e ".[dev]"
 pyinstaller HECRAS_Parallel_Runner.spec
 ```
 
-Output: `dist/HECRAS_Parallel_Runner.exe` (~16 MB)
+Output: `dist/HECRAS_Parallel_Runner.exe`
 
-## Usage
-
-**From exe:** double-click `HECRAS_Parallel_Runner.exe`
-
-**From source (GUI):**
+## Testing
 
 ```
-python hecras_gui_runner.py
-```
-
-**From source (headless):**
-
-```
-python run_hecras_parallel.py
+pytest              # unit tests (no HEC-RAS needed)
+pytest -m integration  # requires HEC-RAS 6.6
 ```
 
 ## Requirements
 
-- HEC-RAS 6.6 installed on target machine
-- For running from source: Python 3.x + `pywin32`
-
-## Author
-
-Siamak Farrokhzadeh — February 2026
+- Python 3.13+
+- HEC-RAS 6.6 installed on target machine (for running simulations)
+- `pywin32` (COM automation)

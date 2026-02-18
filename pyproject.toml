@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hecras-runner"
+version = "0.1.0"
+description = "HEC-RAS parallel simulation runner"
+requires-python = ">=3.13"
+dependencies = [
+    "pywin32",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "pyinstaller",
+]
+
+[project.scripts]
+hecras-runner = "hecras_runner.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires HEC-RAS 6.6 installed (deselect with '-m \"not integration\"')",
+]
+addopts = "-m 'not integration'"

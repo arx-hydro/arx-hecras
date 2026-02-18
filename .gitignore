@@ -16,8 +16,8 @@ ENV/
 build/
 dist/
 
-# HEC-RAS temp/runtime files
-HECRAS_*/
+# HEC-RAS temp/runtime files (anchored to repo root)
+/HECRAS_*/
 *.computeMsgs.txt
 *.rasmap.backup
 systemInfoEncoded.txt
