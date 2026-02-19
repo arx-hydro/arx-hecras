@@ -36,6 +36,31 @@ class TestBuildParser:
         args = parser.parse_args(["project.prj", "--all", "--dss", r"C:\path\file.dss"])
         assert args.dss == r"C:\path\file.dss"
 
+    def test_use_com_flag(self):
+        parser = build_parser()
+        args = parser.parse_args(["project.prj", "--all", "--use-com"])
+        assert args.use_com is True
+
+    def test_use_com_default_false(self):
+        parser = build_parser()
+        args = parser.parse_args(["project.prj", "--all"])
+        assert args.use_com is False
+
+    def test_max_cores_flag(self):
+        parser = build_parser()
+        args = parser.parse_args(["project.prj", "--all", "--max-cores", "4"])
+        assert args.max_cores == 4
+
+    def test_timeout_flag(self):
+        parser = build_parser()
+        args = parser.parse_args(["project.prj", "--all", "--timeout", "3600"])
+        assert args.timeout == 3600.0
+
+    def test_timeout_default(self):
+        parser = build_parser()
+        args = parser.parse_args(["project.prj", "--all"])
+        assert args.timeout == 7200.0
+
 
 class TestMainListMode:
     def test_list_plans(self, prtest1_prj: Path, capsys):
@@ -69,11 +94,52 @@ class TestMainErrors:
         assert "not found" in err
 
     @patch("hecras_runner.cli.check_hecras_installed", return_value=False)
-    def test_hecras_not_installed(self, _mock, prtest1_prj: Path, capsys):
-        result = main([str(prtest1_prj), "--all"])
+    def test_hecras_not_installed_com(self, _mock, prtest1_prj: Path, capsys):
+        result = main([str(prtest1_prj), "--all", "--use-com"])
         assert result == 1
         err = capsys.readouterr().err
         assert "not installed" in err
+
+    @patch("hecras_runner.cli.check_hecras_installed", return_value=False)
+    def test_hecras_not_found_cli(self, _mock, prtest1_prj: Path, capsys):
+        result = main([str(prtest1_prj), "--all"])
+        assert result == 1
+        err = capsys.readouterr().err
+        assert "not found" in err
+
+
+class TestBackendSelection:
+    @patch("hecras_runner.cli.run_simulations")
+    @patch("hecras_runner.cli.check_hecras_installed", return_value=True)
+    def test_default_backend_is_cli(self, _mock_check, mock_run, prtest1_prj: Path):
+        result = main([str(prtest1_prj), "--all"])
+        assert result == 0
+        kwargs = mock_run.call_args[1]
+        assert kwargs["backend"] == "cli"
+
+    @patch("hecras_runner.cli.run_simulations")
+    @patch("hecras_runner.cli.check_hecras_installed", return_value=True)
+    def test_use_com_selects_com_backend(self, _mock_check, mock_run, prtest1_prj: Path):
+        result = main([str(prtest1_prj), "--all", "--use-com"])
+        assert result == 0
+        kwargs = mock_run.call_args[1]
+        assert kwargs["backend"] == "com"
+
+    @patch("hecras_runner.cli.run_simulations")
+    @patch("hecras_runner.cli.check_hecras_installed", return_value=True)
+    def test_max_cores_passed_through(self, _mock_check, mock_run, prtest1_prj: Path):
+        result = main([str(prtest1_prj), "--all", "--max-cores", "4"])
+        assert result == 0
+        kwargs = mock_run.call_args[1]
+        assert kwargs["max_cores"] == 4
+
+    @patch("hecras_runner.cli.run_simulations")
+    @patch("hecras_runner.cli.check_hecras_installed", return_value=True)
+    def test_timeout_passed_through(self, _mock_check, mock_run, prtest1_prj: Path):
+        result = main([str(prtest1_prj), "--all", "--timeout", "3600"])
+        assert result == 0
+        kwargs = mock_run.call_args[1]
+        assert kwargs["timeout_seconds"] == 3600.0
 
 
 class TestMainRunMode:

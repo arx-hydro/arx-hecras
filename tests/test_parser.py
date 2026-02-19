@@ -65,6 +65,12 @@ class TestParseSmallProject:
         proj = parse_project(str(prtest1_prj))
         assert proj.current_plan == "p01"
 
+    def test_simulation_dates(self, prtest1_prj: Path):
+        proj = parse_project(str(prtest1_prj))
+        p01 = proj.plans[0]
+        assert p01.sim_start == "01JAN2024,0000"
+        assert p01.sim_end == "02JAN2024,1200"
+
     def test_project_dss_files(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
         assert "100yCC_2024.dss" in proj.dss_files
@@ -140,6 +146,23 @@ class TestIndividualParsers:
         u.write_text("Flow Title=My Flow\nDSS File=a.dss\nDSS File=b.dss\nDSS File=a.dss\n")
         entry = parse_flow_file(str(u), "u01")
         assert entry == FlowEntry(key="u01", title="My Flow", dss_files=["a.dss", "b.dss"])
+
+    def test_parse_plan_file_with_sim_dates(self, tmp_path: Path):
+        p = tmp_path / "test.p01"
+        p.write_text(
+            "Plan Title=My Plan\nGeom File=g02\nFlow File=u03\n"
+            "Simulation Date=01JAN2024,0000,02JAN2024,1200\n"
+        )
+        entry = parse_plan_file(str(p), "p01")
+        assert entry.sim_start == "01JAN2024,0000"
+        assert entry.sim_end == "02JAN2024,1200"
+
+    def test_parse_plan_file_no_sim_dates(self, tmp_path: Path):
+        p = tmp_path / "test.p01"
+        p.write_text("Plan Title=My Plan\nGeom File=g02\nFlow File=u03\n")
+        entry = parse_plan_file(str(p), "p01")
+        assert entry.sim_start == ""
+        assert entry.sim_end == ""
 
     def test_parse_nonexistent_returns_none(self):
         assert parse_plan_file("/nonexistent/path.p01", "p01") is None

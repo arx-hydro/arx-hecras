@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from collections.abc import Callable
 
 _U_FILE_PATTERN = re.compile(r"\.u\d{2}$", re.IGNORECASE)
@@ -203,10 +204,20 @@ def copy_results_back(
 def cleanup_temp_dir(
     temp_dir: str,
     log: Callable[[str], None] = print,
+    retries: int = 3,
+    delay: float = 1.0,
 ) -> None:
-    """Remove a temporary directory tree."""
-    try:
-        shutil.rmtree(temp_dir)
-        log(f"Cleaned up: {temp_dir}")
-    except OSError as e:
-        log(f"Error cleaning up {temp_dir}: {e}")
+    """Remove a temporary directory tree.
+
+    Retries on failure because HEC-RAS may keep files locked briefly after exit.
+    """
+    for attempt in range(retries):
+        try:
+            shutil.rmtree(temp_dir)
+            log(f"Cleaned up: {temp_dir}")
+            return
+        except OSError:
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                log(f"Could not clean up {temp_dir} (files may still be locked)")

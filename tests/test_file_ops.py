@@ -215,4 +215,4 @@ class TestCleanupTempDir:
     def test_nonexistent_dir_logs_error(self, tmp_path: Path):
         messages: list[str] = []
         cleanup_temp_dir(str(tmp_path / "nonexistent"), log=messages.append)
-        assert any("Error" in m for m in messages)
+        assert any("Could not clean up" in m for m in messages)

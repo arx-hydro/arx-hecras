@@ -52,7 +52,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--hide-ras",
         action="store_true",
-        help="Don't show HEC-RAS window during computation",
+        help="Don't show HEC-RAS window during computation (COM backend only)",
+    )
+    parser.add_argument(
+        "--use-com",
+        action="store_true",
+        help="Use COM automation instead of CLI backend",
+    )
+    parser.add_argument(
+        "--max-cores",
+        type=int,
+        metavar="N",
+        help="Limit CPU cores per simulation (CLI backend only)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=7200.0,
+        metavar="SECONDS",
+        help="Per-plan timeout in seconds (default: 7200)",
     )
     return parser
 
@@ -96,9 +114,18 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("Specify --plans, --all, or --list")
         return 1  # unreachable, parser.error exits
 
+    # Determine backend
+    backend = "com" if args.use_com else "cli"
+
     # Check HEC-RAS installation
-    if not check_hecras_installed():
-        print("Error: HEC-RAS is not installed or COM server is not accessible.", file=sys.stderr)
+    if not check_hecras_installed(backend=backend):
+        if backend == "com":
+            print(
+                "Error: HEC-RAS is not installed or COM server is not accessible.",
+                file=sys.stderr,
+            )
+        else:
+            print("Error: HEC-RAS executable (Ras.exe) not found.", file=sys.stderr)
         return 1
 
     # Build jobs
@@ -118,6 +145,9 @@ def main(argv: list[str] | None = None) -> int:
         parallel=not args.sequential,
         cleanup=not args.no_cleanup,
         show_ras=not args.hide_ras,
+        backend=backend,
+        max_cores=args.max_cores,
+        timeout_seconds=args.timeout,
     )
     return 0
 

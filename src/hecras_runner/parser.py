@@ -18,6 +18,8 @@ class PlanEntry:
     title: str  # e.g. "plan03"
     geom_ref: str  # e.g. "g01"
     flow_ref: str  # e.g. "u03"
+    sim_start: str = ""  # e.g. "01JAN2024,0000"
+    sim_end: str = ""  # e.g. "02JAN2024,1200"
 
 
 @dataclass
@@ -79,6 +81,8 @@ def parse_plan_file(path: str, key: str) -> PlanEntry | None:
     title = ""
     geom_ref = ""
     flow_ref = ""
+    sim_start = ""
+    sim_end = ""
 
     for line in text.splitlines():
         if v := _get_value(line, "Plan Title="):
@@ -87,8 +91,16 @@ def parse_plan_file(path: str, key: str) -> PlanEntry | None:
             geom_ref = v
         elif v := _get_value(line, "Flow File="):
             flow_ref = v
+        elif v := _get_value(line, "Simulation Date="):
+            parts = v.split(",")
+            if len(parts) >= 4:
+                sim_start = f"{parts[0]},{parts[1]}"
+                sim_end = f"{parts[2]},{parts[3]}"
 
-    return PlanEntry(key=key, title=title, geom_ref=geom_ref, flow_ref=flow_ref)
+    return PlanEntry(
+        key=key, title=title, geom_ref=geom_ref, flow_ref=flow_ref,
+        sim_start=sim_start, sim_end=sim_end,
+    )
 
 
 def parse_geom_file(path: str, key: str) -> GeomEntry | None:

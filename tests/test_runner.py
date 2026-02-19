@@ -8,10 +8,14 @@ from unittest.mock import MagicMock, patch
 from hecras_runner.runner import (
     SimulationJob,
     SimulationResult,
+    _kill_process_tree,
+    _parse_sim_dates,
     check_hecras_installed,
+    find_hecras_exe,
     find_hecras_processes,
     open_parent_instance,
     refresh_parent_instance,
+    run_hecras_cli,
     run_hecras_plan,
     run_simulations,
 )
@@ -52,23 +56,354 @@ class TestSimulationResult:
 
 
 class TestCheckHecrasInstalled:
-    def test_returns_true_when_available(self):
+    def test_com_returns_true_when_available(self):
         mock_pycom = MagicMock()
         mock_w32_client = MagicMock()
 
         modules = {"pythoncom": mock_pycom, "win32com.client": mock_w32_client}
         with patch("hecras_runner.runner.importlib.import_module") as mock_import:
             mock_import.side_effect = lambda name: modules[name]
-            result = check_hecras_installed(log=_nolog)
+            result = check_hecras_installed(backend="com", log=_nolog)
         assert result is True
 
-    def test_returns_false_when_not_available(self):
+    def test_com_returns_false_when_not_available(self):
         with patch(
             "hecras_runner.runner.importlib.import_module",
             side_effect=ImportError("no pywin32"),
         ):
-            result = check_hecras_installed(log=_nolog)
+            result = check_hecras_installed(backend="com", log=_nolog)
         assert result is False
+
+    def test_cli_returns_true_when_exe_found(self):
+        with patch("hecras_runner.runner.find_hecras_exe", return_value=r"C:\HEC\Ras.exe"):
+            result = check_hecras_installed(backend="cli", log=_nolog)
+        assert result is True
+
+    def test_cli_returns_false_when_exe_not_found(self):
+        with patch("hecras_runner.runner.find_hecras_exe", return_value=None):
+            result = check_hecras_installed(backend="cli", log=_nolog)
+        assert result is False
+
+    def test_default_backend_is_cli(self):
+        with patch("hecras_runner.runner.find_hecras_exe", return_value=r"C:\HEC\Ras.exe"):
+            result = check_hecras_installed(log=_nolog)
+        assert result is True
+
+
+class TestFindHecrasExe:
+    def test_registry_found(self):
+        """find_hecras_exe returns path from registry when available."""
+        mock_winreg = MagicMock()
+        mock_reg_key = MagicMock()
+        mock_ver_key = MagicMock()
+
+        mock_winreg.OpenKey.side_effect = [mock_reg_key, mock_ver_key]
+        mock_winreg.EnumKey.side_effect = ["6.6", OSError()]
+        mock_winreg.QueryValueEx.return_value = (r"C:\Program Files\HEC\HEC-RAS\6.6", 1)
+        mock_winreg.HKEY_LOCAL_MACHINE = 0x80000002
+
+        with (
+            patch.dict("sys.modules", {"winreg": mock_winreg}),
+            patch("hecras_runner.runner.os.path.isfile", return_value=True),
+        ):
+            result = find_hecras_exe(log=_nolog)
+        assert result == r"C:\Program Files\HEC\HEC-RAS\6.6\Ras.exe"
+
+    def test_path_fallback(self):
+        """find_hecras_exe falls back to shutil.which."""
+        # Make registry fail, but shutil.which succeeds
+        with (
+            patch("hecras_runner.runner.shutil.which", return_value=r"C:\HEC\Ras.exe"),
+        ):
+            # Force registry to fail by making winreg import fail
+            import sys
+
+            saved = sys.modules.get("winreg")
+            sys.modules["winreg"] = None  # type: ignore[assignment]
+            try:
+                result = find_hecras_exe(log=_nolog)
+            finally:
+                if saved is not None:
+                    sys.modules["winreg"] = saved
+                else:
+                    sys.modules.pop("winreg", None)
+        assert result == r"C:\HEC\Ras.exe"
+
+    def test_common_path_fallback(self):
+        """find_hecras_exe checks common install paths."""
+        with (
+            patch("hecras_runner.runner.shutil.which", return_value=None),
+            patch(
+                "hecras_runner.runner.os.path.isfile",
+                side_effect=lambda p: p == r"C:\Program Files\HEC\HEC-RAS\6.6\Ras.exe",
+            ),
+        ):
+            import sys
+
+            saved = sys.modules.get("winreg")
+            sys.modules["winreg"] = None  # type: ignore[assignment]
+            try:
+                result = find_hecras_exe(log=_nolog)
+            finally:
+                if saved is not None:
+                    sys.modules["winreg"] = saved
+                else:
+                    sys.modules.pop("winreg", None)
+        assert result == r"C:\Program Files\HEC\HEC-RAS\6.6\Ras.exe"
+
+    def test_not_found(self):
+        """find_hecras_exe returns None when nothing found."""
+        with (
+            patch("hecras_runner.runner.shutil.which", return_value=None),
+            patch("hecras_runner.runner.os.path.isfile", return_value=False),
+        ):
+            import sys
+
+            saved = sys.modules.get("winreg")
+            sys.modules["winreg"] = None  # type: ignore[assignment]
+            try:
+                result = find_hecras_exe(log=_nolog)
+            finally:
+                if saved is not None:
+                    sys.modules["winreg"] = saved
+                else:
+                    sys.modules.pop("winreg", None)
+        assert result is None
+
+
+class TestParsSimDates:
+    def test_parses_dates(self, tmp_path: Path):
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\nSimulation Date=01JAN2024,0000,02JAN2024,1200\n")
+        start, end = _parse_sim_dates(str(plan))
+        assert start == "01JAN2024,0000"
+        assert end == "02JAN2024,1200"
+
+    def test_missing_line(self, tmp_path: Path):
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\n")
+        start, end = _parse_sim_dates(str(plan))
+        assert start == ""
+        assert end == ""
+
+    def test_nonexistent_file(self):
+        start, end = _parse_sim_dates(r"C:\nonexistent\fake.p01")
+        assert start == ""
+        assert end == ""
+
+
+class TestKillProcessTree:
+    def test_calls_taskkill(self):
+        with patch("hecras_runner.runner.subprocess.run") as mock_run:
+            _kill_process_tree(1234, log=_nolog)
+        mock_run.assert_called_once()
+        cmd = mock_run.call_args[0][0]
+        assert cmd == ["taskkill", "/F", "/T", "/PID", "1234"]
+
+    def test_handles_error(self):
+        with patch(
+            "hecras_runner.runner.subprocess.run",
+            side_effect=OSError("not found"),
+        ):
+            messages: list[str] = []
+            _kill_process_tree(1234, log=messages.append)
+        assert any("Failed" in m for m in messages)
+
+
+class TestRunHecrasCli:
+    def test_returns_failure_when_no_exe(self):
+        with patch("hecras_runner.runner.find_hecras_exe", return_value=None):
+            result = run_hecras_cli(
+                r"C:\temp\project.prj",
+                plan_suffix="01",
+                plan_name="plan01",
+                log=_nolog,
+            )
+        assert result.success is False
+
+    def test_popen_oserror(self, tmp_path: Path):
+        """Verify clean failure when Popen raises OSError."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\n")
+
+        with patch(
+            "hecras_runner.runner.subprocess.Popen",
+            side_effect=OSError("Access denied"),
+        ):
+            result = run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                plan_name="test_plan",
+                ras_exe=r"C:\HEC\Ras.exe",
+                log=_nolog,
+            )
+
+        assert result.success is False
+        assert "Failed to start" in result.error_message
+
+    def test_successful_run(self, tmp_path: Path):
+        """Mock a successful CLI run with HDF completion."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\nSimulation Date=01JAN2024,0000,02JAN2024,1200\n")
+        hdf = tmp_path / "test.p01.hdf"
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.pid = 9999
+        mock_proc.stderr = MagicMock()
+        mock_proc.stderr.read.return_value = b""
+
+        # HDF is created during proc.wait() (simulating HEC-RAS writing it)
+        def create_hdf(timeout=None):
+            hdf.write_bytes(b"\x00" * 50 + b"Finished Successfully" + b"\x00" * 50)
+
+        mock_proc.wait.side_effect = create_hdf
+
+        with patch("hecras_runner.runner.subprocess.Popen", return_value=mock_proc):
+            result = run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                plan_name="test_plan",
+                ras_exe=r"C:\HEC\Ras.exe",
+                log=_nolog,
+            )
+
+        assert result.success is True
+        assert result.plan_name == "test_plan"
+        assert result.plan_suffix == "01"
+        assert result.elapsed_seconds > 0
+
+    def test_hdf_check_fails(self, tmp_path: Path):
+        """Mock a run where exit code is 0 but HDF has no completion marker."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\n")
+        hdf = tmp_path / "test.p01.hdf"
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.pid = 9999
+        mock_proc.stderr = MagicMock()
+        mock_proc.stderr.read.return_value = b""
+
+        # HDF created during wait but with no success marker
+        def create_hdf(timeout=None):
+            hdf.write_bytes(b"\x00" * 100)
+
+        mock_proc.wait.side_effect = create_hdf
+
+        with patch("hecras_runner.runner.subprocess.Popen", return_value=mock_proc):
+            result = run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                plan_name="test_plan",
+                ras_exe=r"C:\HEC\Ras.exe",
+                log=_nolog,
+            )
+
+        assert result.success is False
+        assert "HDF completion check failed" in result.error_message
+
+    def test_timeout_kills_process(self, tmp_path: Path):
+        """Mock a run that times out."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\n")
+
+        import subprocess as sp
+
+        mock_proc = MagicMock()
+        mock_proc.pid = 9999
+        mock_proc.wait.side_effect = [sp.TimeoutExpired(cmd="Ras.exe", timeout=1), None]
+
+        with (
+            patch("hecras_runner.runner.subprocess.Popen", return_value=mock_proc),
+            patch("hecras_runner.runner._kill_process_tree") as mock_kill,
+        ):
+            result = run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                plan_name="test_plan",
+                ras_exe=r"C:\HEC\Ras.exe",
+                timeout_seconds=1.0,
+                log=_nolog,
+            )
+
+        assert result.success is False
+        assert "Timeout" in result.error_message
+        mock_kill.assert_called_once_with(9999, log=_nolog)
+
+    def test_max_cores_flag(self, tmp_path: Path):
+        """Verify -MaxCores is added to the command."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\n")
+        hdf = tmp_path / "test.p01.hdf"
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.pid = 9999
+        mock_proc.stderr = MagicMock()
+        mock_proc.stderr.read.return_value = b""
+
+        def create_hdf(timeout=None):
+            hdf.write_bytes(b"Finished Successfully")
+
+        mock_proc.wait.side_effect = create_hdf
+
+        with patch("hecras_runner.runner.subprocess.Popen", return_value=mock_proc) as mock_popen:
+            run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                ras_exe=r"C:\HEC\Ras.exe",
+                max_cores=4,
+                log=_nolog,
+            )
+
+        cmd = mock_popen.call_args[0][0]
+        assert "-MaxCores" in cmd
+        assert "4" in cmd
+
+    def test_result_queue(self, tmp_path: Path):
+        """Verify result is put on queue when provided."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\n")
+        hdf = tmp_path / "test.p01.hdf"
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.pid = 9999
+        mock_proc.stderr = MagicMock()
+        mock_proc.stderr.read.return_value = b""
+
+        def create_hdf(timeout=None):
+            hdf.write_bytes(b"Finished Successfully")
+
+        mock_proc.wait.side_effect = create_hdf
+
+        mock_queue = MagicMock()
+
+        with patch("hecras_runner.runner.subprocess.Popen", return_value=mock_proc):
+            run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                ras_exe=r"C:\HEC\Ras.exe",
+                result_queue=mock_queue,
+                log=_nolog,
+            )
+
+        mock_queue.put.assert_called_once()
+        queued_result = mock_queue.put.call_args[0][0]
+        assert queued_result.success is True
 
 
 class TestRunHecrasPlan:
@@ -115,6 +450,40 @@ class TestRunHecrasPlan:
         assert result.success is False
         assert result.error_message is not None
 
+    @patch("time.sleep")
+    def test_plan_suffix_kwarg(self, _mock_sleep):
+        """Verify plan_suffix kwarg is used instead of hardcoded empty string."""
+        mock_pycom = MagicMock()
+        mock_ras = MagicMock()
+        mock_ras.Compute_Complete.return_value = 1
+        mock_w32_client = MagicMock()
+        mock_w32_client.Dispatch.return_value = mock_ras
+
+        with patch("hecras_runner.runner.importlib.import_module") as mock_import:
+            modules = {"pythoncom": mock_pycom, "win32com.client": mock_w32_client}
+            mock_import.side_effect = lambda name: modules[name]
+            result = run_hecras_plan(
+                r"C:\temp\project.prj", "plan01", plan_suffix="03", log=_nolog
+            )
+
+        assert result.plan_suffix == "03"
+
+    @patch("time.sleep")
+    def test_absorbs_extra_kwargs(self, _mock_sleep):
+        """Verify **_kwargs absorbs extra dispatch kwargs without error."""
+        with patch(
+            "hecras_runner.runner.importlib.import_module",
+            side_effect=ImportError("no pywin32"),
+        ):
+            result = run_hecras_plan(
+                r"C:\temp\project.prj",
+                "plan01",
+                log=_nolog,
+                max_cores=4,  # extra kwarg from dispatch
+                timeout_seconds=100,  # extra kwarg from dispatch
+            )
+        assert isinstance(result, SimulationResult)
+
 
 class TestRunSimulations:
     def test_orchestration_creates_temp_and_copies_back(self, tmp_project: Path):
@@ -134,6 +503,7 @@ class TestRunSimulations:
                 jobs,
                 parallel=False,
                 cleanup=True,
+                backend="com",
                 log=messages.append,
             )
 
@@ -180,7 +550,7 @@ class TestRunSimulations:
 
         with patch("hecras_runner.runner.run_hecras_plan", side_effect=fake_run):
             results = run_simulations(
-                str(tmp_project), jobs, parallel=False, cleanup=True, log=_nolog
+                str(tmp_project), jobs, parallel=False, cleanup=True, backend="com", log=_nolog
             )
 
         assert len(results) == 2
@@ -195,6 +565,10 @@ class TestRunSimulations:
             SimulationJob(plan_name="plan02", plan_suffix="02"),
         ]
 
+        mock_result = SimulationResult(
+            plan_name="plan01", plan_suffix="01", success=True, elapsed_seconds=1.0
+        )
+
         with (
             patch("hecras_runner.runner.Process") as mock_process_cls,
             patch("hecras_runner.runner.Queue") as mock_queue_cls,
@@ -202,7 +576,7 @@ class TestRunSimulations:
             mock_proc = MagicMock()
             mock_process_cls.return_value = mock_proc
             mock_q = MagicMock()
-            mock_q.empty.return_value = True  # no results to drain
+            mock_q.get.return_value = mock_result
             mock_queue_cls.return_value = mock_q
 
             run_simulations(
@@ -210,6 +584,7 @@ class TestRunSimulations:
                 jobs,
                 parallel=True,
                 cleanup=True,
+                backend="com",
                 log=_nolog,
             )
 
@@ -231,6 +606,7 @@ class TestRunSimulations:
                 jobs,
                 parallel=False,
                 cleanup=False,
+                backend="com",
                 log=_nolog,
             )
 
@@ -244,6 +620,54 @@ class TestRunSimulations:
             import shutil
 
             shutil.rmtree(os.path.dirname(temp_prj))
+
+    def test_cli_backend_dispatch(self, tmp_project: Path):
+        """Verify backend='cli' dispatches to run_hecras_cli."""
+        jobs = [SimulationJob(plan_name="plan01", plan_suffix="01")]
+
+        mock_result = SimulationResult(
+            plan_name="plan01", plan_suffix="01", success=True, elapsed_seconds=5.0
+        )
+        with (
+            patch("hecras_runner.runner.run_hecras_cli") as mock_cli,
+            patch("hecras_runner.runner.find_hecras_exe", return_value=r"C:\HEC\Ras.exe"),
+        ):
+            mock_cli.return_value = mock_result
+            results = run_simulations(
+                str(tmp_project),
+                jobs,
+                parallel=False,
+                cleanup=True,
+                backend="cli",
+                log=_nolog,
+            )
+
+        mock_cli.assert_called_once()
+        assert len(results) == 1
+        assert results[0].success is True
+
+    def test_default_backend_is_cli(self, tmp_project: Path):
+        """Verify default backend is 'cli'."""
+        jobs = [SimulationJob(plan_name="plan01", plan_suffix="01")]
+
+        mock_result = SimulationResult(
+            plan_name="plan01", plan_suffix="01", success=True, elapsed_seconds=5.0
+        )
+        with (
+            patch("hecras_runner.runner.run_hecras_cli") as mock_cli,
+            patch("hecras_runner.runner.find_hecras_exe", return_value=r"C:\HEC\Ras.exe"),
+        ):
+            mock_cli.return_value = mock_result
+            run_simulations(
+                str(tmp_project),
+                jobs,
+                parallel=False,
+                cleanup=True,
+                log=_nolog,
+            )
+
+        # Should have called CLI runner, not COM runner
+        mock_cli.assert_called_once()
 
 
 class TestFindHecrasProcesses:
