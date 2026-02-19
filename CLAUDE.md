@@ -35,6 +35,7 @@ Each plan runs in an isolated temp directory copy to avoid file locking conflict
 ## Key constraints
 - **Windows-only** — CLI backend needs `Ras.exe`; COM backend needs `pywin32`
 - **HEC-RAS 6.6** — CLI: `Ras.exe -c`; COM ProgID: `RAS66.HECRASController`
+- CLI sets `Current Plan=` in .prj before launch (Ras.exe ignores plan argument in 6.6)
 - Exit code 0 from Ras.exe is NOT reliable — always verify HDF completion
 - Core modules (parser, file_ops, monitor) have zero external deps for QGIS plugin reuse
 

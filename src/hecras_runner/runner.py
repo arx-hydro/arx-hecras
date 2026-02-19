@@ -194,6 +194,33 @@ def refresh_parent_instance(
 
 # ── CLI backend helpers ──
 
+def _set_current_plan(prj_path: str, plan_key: str) -> None:
+    """Set ``Current Plan=`` in the .prj file so Ras.exe runs the right plan.
+
+    HEC-RAS 6.6 ``-c`` always runs the current plan and ignores the plan
+    argument on the command line.
+    """
+    try:
+        with open(prj_path, encoding="utf-8") as f:
+            lines = f.readlines()
+    except OSError:
+        return
+
+    for i, line in enumerate(lines):
+        if line.startswith("Current Plan="):
+            lines[i] = f"Current Plan={plan_key}\n"
+            break
+    else:
+        # No Current Plan line found — insert after Proj Title
+        lines.insert(1, f"Current Plan={plan_key}\n")
+
+    try:
+        with open(prj_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except OSError:
+        pass
+
+
 _SIM_DATE_RE = re.compile(r"^Simulation Date=(.+)$", re.MULTILINE)
 
 
@@ -296,10 +323,12 @@ def run_hecras_cli(
     prj_dir = os.path.dirname(project_path)
     basename = os.path.splitext(os.path.basename(project_path))[0]
 
-    # Build command as a shell string — Ras.exe requires shell=True on Windows
-    # Plan arg is the plan filename (e.g. "small_project_01.p01")
-    plan_filename = f"{basename}.{plan_file}"
-    cmd = f'"{ras_exe}" -c "{project_path}" "{plan_filename}"'
+    # Set current plan in .prj file — Ras.exe -c always runs the "Current Plan"
+    # and ignores the plan argument in HEC-RAS 6.6.
+    _set_current_plan(project_path, plan_file)
+
+    # Build command — no plan arg needed since we set Current Plan in .prj
+    cmd = f'"{ras_exe}" -c "{project_path}"'
     if max_cores is not None:
         cmd += f" -MaxCores {max_cores}"
     cmd += " -hideCompute"

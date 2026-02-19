@@ -10,6 +10,7 @@ from hecras_runner.runner import (
     SimulationResult,
     _kill_process_tree,
     _parse_sim_dates,
+    _set_current_plan,
     check_hecras_installed,
     find_hecras_exe,
     find_hecras_processes,
@@ -190,6 +191,35 @@ class TestParsSimDates:
         start, end = _parse_sim_dates(r"C:\nonexistent\fake.p01")
         assert start == ""
         assert end == ""
+
+
+class TestSetCurrentPlan:
+    def test_sets_current_plan(self, tmp_path: Path):
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\nCurrent Plan=p01\nPlan File=p01\nPlan File=p02\n")
+        _set_current_plan(str(prj), "p02")
+        content = prj.read_text()
+        assert "Current Plan=p02\n" in content
+        assert "Current Plan=p01" not in content
+
+    def test_preserves_other_lines(self, tmp_path: Path):
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\nCurrent Plan=p01\nGeom File=g02\n")
+        _set_current_plan(str(prj), "p03")
+        content = prj.read_text()
+        assert "Proj Title=test\n" in content
+        assert "Geom File=g02\n" in content
+
+    def test_inserts_if_missing(self, tmp_path: Path):
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\nPlan File=p01\n")
+        _set_current_plan(str(prj), "p01")
+        content = prj.read_text()
+        assert "Current Plan=p01\n" in content
+
+    def test_nonexistent_file(self):
+        # Should not raise
+        _set_current_plan(r"C:\nonexistent\fake.prj", "p01")
 
 
 class TestKillProcessTree:
