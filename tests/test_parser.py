@@ -15,12 +15,12 @@ from hecras_runner.parser import (
 )
 
 
-class TestParsePRtest1:
-    """Parse the real PRtest1 project."""
+class TestParseSmallProject:
+    """Parse the real small_project_01 project."""
 
     def test_project_title(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
-        assert proj.title == "PRtest1"
+        assert proj.title == "small_project_01"
 
     def test_four_plans(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
@@ -31,7 +31,7 @@ class TestParsePRtest1:
     def test_plan_titles(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
         titles = [p.title for p in proj.plans]
-        assert titles == ["plan01", "plan02", "plan03", "plan04"]
+        assert titles == ["plan_01", "plan_02", "plan_03", "plan_04"]
 
     def test_one_geometry(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
@@ -63,7 +63,7 @@ class TestParsePRtest1:
 
     def test_current_plan(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
-        assert proj.current_plan == "p04"
+        assert proj.current_plan == "p01"
 
     def test_project_dss_files(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))

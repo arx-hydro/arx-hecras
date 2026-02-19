@@ -14,28 +14,23 @@ import pytest
 from hecras_runner.parser import parse_project
 from hecras_runner.runner import SimulationJob, check_hecras_installed, run_simulations
 
-TESTS_DIR = Path(__file__).parent
+REPO_ROOT = Path(__file__).parent.parent
+PROJECT_DIR = REPO_ROOT / "test_projects"
 
 # Skip entire module if HEC-RAS is not installed
 pytestmark = pytest.mark.integration
 
-_EXCLUDE_PATTERNS = {"test_*.py", "conftest.py", "__pycache__", "synthetic"}
-
 
 @pytest.fixture
 def integration_project(tmp_path: Path) -> Path:
-    """Copy PRtest1 project to a temp directory, returning the .prj path.
+    """Copy small_project_01 to a temp directory, returning the .prj path.
 
-    Excludes test source files and synthetic data to keep the copy minimal.
     The runner creates its own temp copies internally, so this gives double
     isolation — the source tree is never touched.
     """
-    src = TESTS_DIR
+    src = PROJECT_DIR
     for item in src.rglob("*"):
         rel = item.relative_to(src)
-        # Skip excluded top-level entries
-        if any(rel.parts[0] == pat.replace("*", "") or rel.match(pat) for pat in _EXCLUDE_PATTERNS):
-            continue
         dest = tmp_path / rel
         if item.is_dir():
             dest.mkdir(parents=True, exist_ok=True)
@@ -43,8 +38,8 @@ def integration_project(tmp_path: Path) -> Path:
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(item, dest)
 
-    prj = tmp_path / "PRtest1.prj"
-    assert prj.exists(), f"PRtest1.prj not found in {tmp_path}"
+    prj = tmp_path / "small_project_01.prj"
+    assert prj.exists(), f"small_project_01.prj not found in {tmp_path}"
     return prj
 
 
@@ -94,7 +89,7 @@ class TestFullSimulation:
         # Verify .p##.hdf result files exist in the project directory
         proj_dir = integration_project.parent
         for plan in project.plans:
-            hdf = proj_dir / f"PRtest1.{plan.key}.hdf"
+            hdf = proj_dir / f"small_project_01.{plan.key}.hdf"
             assert hdf.exists(), f"Expected result HDF not found: {hdf}"
 
     def test_run_single_plan_sequential(self, integration_project: Path) -> None:

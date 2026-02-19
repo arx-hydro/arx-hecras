@@ -33,9 +33,9 @@ systemInfoEncoded.txt
 *.x[0-9][0-9]
 
 # Test project source data (override ignores above)
-!tests/PRtest1.g02.hdf
-!tests/Terrain/existing_01/existing_01.hdf
-!tests/100yCC_2024.dss
+!test_projects/small_project_01.g02.hdf
+!test_projects/Terrain/existing_01/existing_01.hdf
+!test_projects/100yCC_2024.dss
 
 # OS files
 Thumbs.db

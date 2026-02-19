@@ -7,15 +7,16 @@ from pathlib import Path
 import pytest
 
 TESTS_DIR = Path(__file__).parent
-PRTEST1_PRJ = TESTS_DIR / "PRtest1.prj"
+REPO_ROOT = TESTS_DIR.parent
+PROJECT_PRJ = REPO_ROOT / "test_projects" / "small_project_01.prj"
 SYNTHETIC_PRJ = TESTS_DIR / "synthetic" / "minimal.prj"
 
 
 @pytest.fixture
 def prtest1_prj() -> Path:
-    """Path to the PRtest1 project file."""
-    assert PRTEST1_PRJ.exists(), f"Test project not found: {PRTEST1_PRJ}"
-    return PRTEST1_PRJ
+    """Path to the small_project_01 project file."""
+    assert PROJECT_PRJ.exists(), f"Test project not found: {PROJECT_PRJ}"
+    return PROJECT_PRJ
 
 
 @pytest.fixture

@@ -42,11 +42,11 @@ class TestMainListMode:
         result = main([str(prtest1_prj), "--list"])
         assert result == 0
         output = capsys.readouterr().out
-        assert "PRtest1" in output
-        assert "plan01" in output
-        assert "plan02" in output
-        assert "plan03" in output
-        assert "plan04" in output
+        assert "small_project_01" in output
+        assert "plan_01" in output
+        assert "plan_02" in output
+        assert "plan_03" in output
+        assert "plan_04" in output
         assert "(current)" in output
 
     def test_list_synthetic(self, synthetic_prj: Path, capsys):
@@ -91,13 +91,13 @@ class TestMainRunMode:
     @patch("hecras_runner.cli.run_simulations")
     @patch("hecras_runner.cli.check_hecras_installed", return_value=True)
     def test_selected_plans(self, _mock_check, mock_run, prtest1_prj: Path):
-        result = main([str(prtest1_prj), "--plans", "plan01", "plan03"])
+        result = main([str(prtest1_prj), "--plans", "plan_01", "plan_03"])
         assert result == 0
         jobs = mock_run.call_args[1]["jobs"]
         assert len(jobs) == 2
-        assert jobs[0].plan_name == "plan01"
+        assert jobs[0].plan_name == "plan_01"
         assert jobs[0].plan_suffix == "01"
-        assert jobs[1].plan_name == "plan03"
+        assert jobs[1].plan_name == "plan_03"
         assert jobs[1].plan_suffix == "03"
 
     @patch("hecras_runner.cli.run_simulations")
