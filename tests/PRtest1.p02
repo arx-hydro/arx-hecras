@@ -2,7 +2,7 @@ Plan Title=plan02
 Program Version=6.60
 Short Identifier=plan02                                                          
 Simulation Date=01JAN2024,0000,02JAN2024,1200
-Geom File=g01
+Geom File=g02
 Flow File=u02
 Subcritical Flow
 K Sum by GR= 0 

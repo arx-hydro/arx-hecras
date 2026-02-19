@@ -20,6 +20,7 @@ dist/
 /HECRAS_*/
 *.computeMsgs.txt
 *.rasmap.backup
+*.source.tif
 systemInfoEncoded.txt
 
 # HEC-RAS generated output (large binary files)
@@ -32,9 +33,8 @@ systemInfoEncoded.txt
 *.x[0-9][0-9]
 
 # Test project source data (override ignores above)
-!tests/PRtest1.g01.hdf
-!tests/Terrain/existing_02/existing_02.hdf
-!tests/Land Classification/LandCover.hdf
+!tests/PRtest1.g02.hdf
+!tests/Terrain/existing_01/existing_01.hdf
 !tests/100yCC_2024.dss
 
 # OS files

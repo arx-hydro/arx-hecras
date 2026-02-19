@@ -36,8 +36,8 @@ class TestParsePRtest1:
     def test_one_geometry(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
         assert len(proj.geometries) == 1
-        assert proj.geometries[0].key == "g01"
-        assert proj.geometries[0].title == "geoBR"
+        assert proj.geometries[0].key == "g02"
+        assert proj.geometries[0].title == "geometry_01"
 
     def test_four_flows(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
@@ -48,7 +48,7 @@ class TestParsePRtest1:
     def test_plan_cross_references(self, prtest1_prj: Path):
         proj = parse_project(str(prtest1_prj))
         for plan in proj.plans:
-            assert plan.geom_ref == "g01"
+            assert plan.geom_ref == "g02"
         assert proj.plans[0].flow_ref == "u01"
         assert proj.plans[2].flow_ref == "u03"
 
