@@ -26,6 +26,7 @@ systemInfoEncoded.txt
 *.dss
 *.dsc.h5
 *.hdf
+*.b[0-9][0-9]
 *.bco[0-9][0-9]
 *.ic.o[0-9][0-9]
 *.x[0-9][0-9]
