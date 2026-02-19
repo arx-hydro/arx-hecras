@@ -1,0 +1,891 @@
+{
+  "timestamp": "2026-02-19 13:06:36",
+  "duration_seconds": 77.2,
+  "local": {
+    "hostname": "DESKTOP-AF3MNF5",
+    "username": "David.Kennewell",
+    "domain": "PINI",
+    "is_domain_joined": true,
+    "is_admin": false,
+    "ip_addresses": [
+      "172.23.80.1",
+      "192.168.111.6"
+    ],
+    "subnet": "172.23.80.0/20",
+    "cpu_cores": 22,
+    "ram_gb": 31.5,
+    "os_version": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.13.12",
+    "python_path": "C:\\dave\\code\\arx-hecras\\.venv\\Scripts\\python.exe",
+    "hecras_path": "",
+    "hecras_version": "",
+    "hecras_com_ok": true,
+    "winrm_service": "Stopped",
+    "ssh_service": "Not installed",
+    "powershell_path": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "firewall_profile": "Public Profile"
+  },
+  "hosts": [
+    {
+      "ip": "192.168.111.1",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": false,
+        "5985": false,
+        "5986": false,
+        "22": true,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": "SSH-2.0-uiCGN",
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.2",
+      "hostname": "DESKTOP-DN52QV0",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.3",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": false,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.4",
+      "hostname": "DESKTOP-GEU577D",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.5",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.7",
+      "hostname": "DESKTOP-0APC00O",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.8",
+      "hostname": "DESKTOP-KKCQHMN",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.9",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": false,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.10",
+      "hostname": "DESKTOP-QS0QNLA",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.11",
+      "hostname": "DESKTOP-O24I687",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.12",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.13",
+      "hostname": "BeytDem",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.14",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.15",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.16",
+      "hostname": "DESKTOP-VQQ2FTG",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.17",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.18",
+      "hostname": "DESKTOP-DG6DVBE",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.19",
+      "hostname": "DESKTOP-CC0H6D6",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.20",
+      "hostname": "DESKTOP-VE3DORL",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [
+        "Users"
+      ],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.21",
+      "hostname": "MAC-7828A9",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": false,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.22",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.23",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.24",
+      "hostname": "DESKTOP-AJCG9JE",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.26",
+      "hostname": "DESKTOP-P7H2V51",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.27",
+      "hostname": "DESKTOP-M5C2U5A",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.28",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.29",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.30",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.31",
+      "hostname": "DESKTOP-KHERB3P",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.32",
+      "hostname": "DESKTOP-EJPIQCF",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [
+        "Users"
+      ],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.33",
+      "hostname": "DESKTOP-RAIL",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.34",
+      "hostname": "DESKTOP-5QJN5A9",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": true,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": true,
+        "135": true
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": true,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.35",
+      "hostname": "LT0380",
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": false,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    },
+    {
+      "ip": "192.168.111.255",
+      "hostname": null,
+      "source": "arp",
+      "online": true,
+      "ports": {
+        "445": false,
+        "5985": false,
+        "5986": false,
+        "22": false,
+        "3389": false,
+        "135": false
+      },
+      "smb_shares": [],
+      "winrm_http_ok": false,
+      "ssh_banner": null,
+      "rdp_open": false,
+      "logged_in_user": null,
+      "sessions": [],
+      "errors": []
+    }
+  ],
+  "recommendations": [
+    {
+      "approach": "SMB Network Shares",
+      "rating": "GREEN",
+      "hosts_supporting": [
+        "DESKTOP-DN52QV0",
+        "DESKTOP-GEU577D",
+        "192.168.111.5",
+        "DESKTOP-0APC00O",
+        "DESKTOP-KKCQHMN",
+        "DESKTOP-QS0QNLA",
+        "DESKTOP-O24I687",
+        "192.168.111.12",
+        "BeytDem",
+        "192.168.111.14",
+        "192.168.111.15",
+        "DESKTOP-VQQ2FTG",
+        "192.168.111.17",
+        "DESKTOP-DG6DVBE",
+        "DESKTOP-CC0H6D6",
+        "DESKTOP-VE3DORL",
+        "192.168.111.22",
+        "192.168.111.23",
+        "DESKTOP-AJCG9JE",
+        "DESKTOP-P7H2V51",
+        "DESKTOP-M5C2U5A",
+        "192.168.111.28",
+        "192.168.111.29",
+        "192.168.111.30",
+        "DESKTOP-KHERB3P",
+        "DESKTOP-EJPIQCF",
+        "DESKTOP-RAIL",
+        "DESKTOP-5QJN5A9"
+      ],
+      "summary": "All 28 workstations have SMB (445) open.",
+      "details": [
+        "Copy project files to \\\\host\\share, run locally, copy results back.",
+        "Zero IT friction \u2014 uses existing Windows file sharing.",
+        "Simplest Phase 1 approach for distributed HEC-RAS."
+      ]
+    },
+    {
+      "approach": "WinRM / PowerShell Remoting",
+      "rating": "RED",
+      "hosts_supporting": [],
+      "summary": "No WinRM access. Ask IT to enable via GPO.",
+      "details": [
+        "Execute Ras.exe remotely via Invoke-Command or pywinrm.",
+        "Requires WinRM service + firewall rule on target machines.",
+        "Best combined with SMB for file transfer."
+      ]
+    },
+    {
+      "approach": "SSH (OpenSSH)",
+      "rating": "YELLOW",
+      "hosts_supporting": [
+        "192.168.111.1"
+      ],
+      "summary": "SSH available on only 1 host(s).",
+      "details": [
+        "Windows 10/11 has built-in OpenSSH Server (optional feature).",
+        "Requires admin to enable or GPO deployment.",
+        "Banners: SSH-2.0-uiCGN"
+      ]
+    },
+    {
+      "approach": "HTTP Worker Service (custom)",
+      "rating": "YELLOW",
+      "hosts_supporting": [
+        "DESKTOP-DN52QV0",
+        "DESKTOP-GEU577D",
+        "192.168.111.5",
+        "DESKTOP-0APC00O",
+        "DESKTOP-KKCQHMN",
+        "DESKTOP-QS0QNLA",
+        "DESKTOP-O24I687",
+        "192.168.111.12",
+        "BeytDem",
+        "192.168.111.14",
+        "192.168.111.15",
+        "DESKTOP-VQQ2FTG",
+        "192.168.111.17",
+        "DESKTOP-DG6DVBE",
+        "DESKTOP-CC0H6D6",
+        "DESKTOP-VE3DORL",
+        "192.168.111.22",
+        "192.168.111.23",
+        "DESKTOP-AJCG9JE",
+        "DESKTOP-P7H2V51",
+        "DESKTOP-M5C2U5A",
+        "192.168.111.28",
+        "192.168.111.29",
+        "192.168.111.30",
+        "DESKTOP-KHERB3P",
+        "DESKTOP-EJPIQCF",
+        "DESKTOP-RAIL",
+        "DESKTOP-5QJN5A9"
+      ],
+      "summary": "Not deployed yet \u2014 requires installing worker .exe on each machine.",
+      "details": [
+        "Lightweight FastAPI worker packaged as PyInstaller .exe.",
+        "One firewall port exception per machine.",
+        "Falls back to SMB file queue if firewall blocked.",
+        "Recommended Phase 2 approach after SMB file queue is proven."
+      ]
+    },
+    {
+      "approach": "RDP (Remote Desktop)",
+      "rating": "YELLOW",
+      "hosts_supporting": [
+        "DESKTOP-DN52QV0",
+        "DESKTOP-GEU577D",
+        "192.168.111.5",
+        "DESKTOP-0APC00O",
+        "DESKTOP-KKCQHMN",
+        "DESKTOP-QS0QNLA",
+        "DESKTOP-O24I687",
+        "BeytDem",
+        "192.168.111.14",
+        "192.168.111.15",
+        "DESKTOP-VQQ2FTG",
+        "DESKTOP-DG6DVBE",
+        "DESKTOP-CC0H6D6",
+        "DESKTOP-VE3DORL",
+        "192.168.111.23",
+        "DESKTOP-AJCG9JE",
+        "DESKTOP-P7H2V51",
+        "DESKTOP-M5C2U5A",
+        "192.168.111.28",
+        "192.168.111.29",
+        "DESKTOP-KHERB3P",
+        "DESKTOP-EJPIQCF",
+        "DESKTOP-RAIL",
+        "DESKTOP-5QJN5A9"
+      ],
+      "summary": "RDP open on 24 hosts. Interactive only \u2014 not for automation.",
+      "details": [
+        "RDP confirms machines are general-purpose workstations.",
+        "Not suitable for automated job distribution (interactive sessions only).",
+        "Useful for manual troubleshooting of remote workers."
+      ]
+    }
+  ]
+}

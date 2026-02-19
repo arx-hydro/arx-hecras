@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEC-RAS CLI Migration Research Report — Arx Engineering</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a2e;
+    --accent: #0f4c75;
+    --accent-light: #3282b8;
+    --border: #dde1e6;
+    --code-bg: #f4f5f7;
+    --table-header: #0f4c75;
+    --table-header-fg: #ffffff;
+    --table-stripe: #f7f9fb;
+    --highlight: #fff3cd;
+    --success: #d4edda;
+    --danger: #f8d7da;
+    --info: #d1ecf1;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.65;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 3rem 4rem;
+  }
+  h1 {
+    font-size: 2rem;
+    color: var(--accent);
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+    color: var(--accent);
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid var(--border);
+  }
+  h3 {
+    font-size: 1.15rem;
+    color: var(--accent-light);
+    margin-top: 1.8rem;
+    margin-bottom: 0.6rem;
+  }
+  p { margin-bottom: 0.9rem; }
+  strong { color: #111; }
+  a { color: var(--accent-light); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Table of contents */
+  nav.toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  nav.toc h2 { margin-top: 0; border: none; font-size: 1.1rem; }
+  nav.toc ol { padding-left: 1.5rem; }
+  nav.toc li { margin-bottom: 0.3rem; font-size: 0.95rem; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.92rem;
+    box-shadow: var(--shadow);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  thead th {
+    background: var(--table-header);
+    color: var(--table-header-fg);
+    padding: 0.65rem 0.8rem;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+  tbody tr:hover { background: #eef3f8; }
+
+  /* Code */
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15rem 0.4rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: #1e2330;
+    color: #e4e8f0;
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    box-shadow: var(--shadow);
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  /* Lists */
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+
+  /* Callout boxes */
+  .callout {
+    border-left: 4px solid;
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .callout-warning { background: var(--highlight); border-color: #ffc107; }
+  .callout-success { background: var(--success); border-color: #28a745; }
+  .callout-danger  { background: var(--danger);  border-color: #dc3545; }
+  .callout-info    { background: var(--info);    border-color: #17a2b8; }
+  .callout strong  { display: block; margin-bottom: 0.3rem; }
+
+  /* Horizontal rules */
+  hr {
+    border: none;
+    border-top: 2px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* Print */
+  @media print {
+    body { max-width: 100%; padding: 1rem; font-size: 11pt; }
+    pre { white-space: pre-wrap; }
+    table { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>HEC-RAS CLI Migration Research Report</h1>
+<div class="subtitle">
+  <strong>Date:</strong> 2026-02-19 &nbsp;|&nbsp;
+  <strong>Prepared for:</strong> Arx Engineering &mdash; arx-hecras parallel runner refactoring<br>
+  <strong>Based on:</strong> 10 parallel research agents covering CLI syntax, ras-commander, completion detection, Azure, AWS, Windows network distribution, on-premise server, HEC-RAS 2025, network probing, and existing codebase analysis.
+</div>
+
+<nav class="toc">
+<h2>Table of Contents</h2>
+<ol>
+  <li><a href="#s1">Executive Summary</a></li>
+  <li><a href="#s2">CLI Syntax (The 5 Unknowns &mdash; Resolved)</a></li>
+  <li><a href="#s3">Use Case 1: Cloud (Azure / AWS)</a></li>
+  <li><a href="#s4">Use Case 2: Colleague Laptops (Corporate Network)</a></li>
+  <li><a href="#s5">Use Case 3: Dedicated On-Premise Server</a></li>
+  <li><a href="#s6">HEC-RAS 2025: The Game Changer</a></li>
+  <li><a href="#s7">ras-commander: Learn, Don't Adopt</a></li>
+  <li><a href="#s8">Architecture Recommendation</a></li>
+  <li><a href="#s9">Cost Comparison Matrix</a></li>
+  <li><a href="#s10">Implementation Roadmap</a></li>
+  <li><a href="#s11">Sources</a></li>
+</ol>
+</nav>
+
+<!-- ================================================================ -->
+<h2 id="s1">1. Executive Summary</h2>
+
+<p>Migrating from COM to CLI execution is both necessary and straightforward. The CLI command is confirmed: <code>Ras.exe -c "project.prj" "plan.pXX"</code>. This works headless, supports 2D models, and eliminates the <code>pywin32</code> dependency.</p>
+
+<p>For <strong>500+ plans at hours each</strong>, the three deployment models are all viable with different trade-offs:</p>
+
+<table>
+<thead><tr><th>Deployment</th><th>Cost (100 plans &times; 2hr)</th><th>Setup Effort</th><th>Best For</th></tr></thead>
+<tbody>
+<tr><td><strong>Cloud (Spot)</strong></td><td>$33&ndash;80/run</td><td>Medium (2&ndash;4 weeks)</td><td>Burst capacity, infrequent large batches</td></tr>
+<tr><td><strong>Colleague laptops</strong></td><td>$0 (hardware exists)</td><td>Low&ndash;Medium (1&ndash;3 weeks)</td><td>Overnight runs, small&ndash;medium batches</td></tr>
+<tr><td><strong>On-premise server</strong></td><td>~$15k upfront, ~$1.5k/yr</td><td>Medium (hardware procurement)</td><td>Sustained daily workloads</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-info">
+<strong>HEC-RAS 2025 changes everything:</strong> new CLI (<code>ras prepare</code> + <code>ras solve</code>), GPU acceleration (14&ndash;35&times; speedup), Linux support, and a completely new HDF5-based project format. However, it's alpha software with no implicit solver until ~2027. Design for both 6.x and 2025.
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s2">2. CLI Syntax (The 5 Unknowns &mdash; Resolved)</h2>
+
+<h3>Unknown 1: Exact <code>Ras.exe</code> CLI Syntax</h3>
+
+<p><strong>HEC-RAS 6.6 &mdash; Full CLI Reference</strong> (confirmed from <code>Ras.exe -h</code> output):</p>
+
+<pre><code>File Parameters:
+  Optional project filename (must have quotes)
+  Optional plan filename (must have quotes)
+
+Parameters:
+  -c          Run current plan (or specified plan) then exit
+  -a          Run ALL plans in the project then exit
+  -test       Copy project to [Test] folder, run all plans, then close
+  -MaxCores   Upper limit on cores (use with -test)
+  -Clean2DTables   Clear 2D property tables in [Test] folder (use with -test)
+  -CleanIBTables   Clear BR/Culvert/Weir tables in [Test] folder (use with -test)
+  -inProcess       Run pre-process in Ras process memory (faster for small projects)
+  -NoPilot         Remove pilot channels from test compute
+  -FV1D            Override 1D solver with Finite Volume 1D approach
+  -hWndComputeProgress=n   Report progress to Windows handle n
+  -hWndComputeMessages=n   Report messages to Windows handle n
+  -hideCompute     Hide the compute window during batch computes
+  -mouseWheelOff   Disable mouse wheel in plots/tables
+  -h / -help       Show help</code></pre>
+
+<p><strong>Key invocation patterns:</strong></p>
+<pre><code># Run a specific plan headless:
+Ras.exe -c "project.prj" "plan.p01" -hideCompute
+
+# Run ALL plans sequentially:
+Ras.exe -a "project.prj" -hideCompute
+
+# Run in test mode (copies to [Test] folder, runs all plans):
+Ras.exe -test "project.prj" -MaxCores 8 -Clean2DTables</code></pre>
+
+<div class="callout callout-success">
+<strong>Notable discoveries from official help:</strong>
+<ul style="margin-bottom:0">
+<li><code>-a</code> runs ALL plans sequentially &mdash; useful for validation but not parallel execution</li>
+<li><code>-test</code> has its own temp-directory isolation (appends <code>[Test]</code>) &mdash; similar to our pattern!</li>
+<li><code>-hideCompute</code> hides the compute window &mdash; use for headless server execution</li>
+<li><code>-hWndComputeProgress=n</code> and <code>-hWndComputeMessages=n</code> &mdash; progress/message reporting via Windows message handles (could enable real-time progress without .bco polling)</li>
+<li><code>-MaxCores</code> limits core usage per simulation &mdash; critical for parallel execution on shared machines</li>
+<li><code>-inProcess</code> skips launching a separate pre-process executable (faster for small models)</li>
+<li>File parameters <strong>must be in quotes</strong></li>
+</ul>
+</div>
+
+<p><strong>HEC-RAS 2025 (new architecture):</strong></p>
+<pre><code>ras prepare -p project.ras --plan "PlanName" -o Results/plan.h5
+ras solve -r Results/plan.h5</code></pre>
+
+<ul>
+<li>Two-step process: <code>prepare</code> ingests data into a single self-contained <code>.h5</code>, <code>solve</code> computes it</li>
+<li><code>solve</code> writes progress to stdout: <code>Computing... Progress: 99%</code></li>
+<li>The single <code>.h5</code> is a perfect unit of work for distributed systems</li>
+</ul>
+
+<h3>Unknown 2: Completion Detection</h3>
+
+<div class="callout callout-danger">
+<strong>Exit codes are unreliable.</strong> Exit code 0 does NOT guarantee simulation success.
+</div>
+
+<p><strong>Definitive completion check</strong> (priority order):</p>
+<ol>
+<li><strong>HDF verification</strong> &mdash; read <code>Results/Summary/Compute Messages (text)</code> from <code>.p##.hdf</code>, check for <code>"Complete Process"</code> string</li>
+<li><strong><code>.bco</code> file</strong> &mdash; the computation log file, written incrementally during simulation; contains volume accounting summary near end</li>
+<li><strong>Exit code</strong> &mdash; catches crashes (non-zero), but 0 is necessary-not-sufficient</li>
+<li><strong><code>.p##.hdf</code> existence</strong> &mdash; file only created on completion (unless <code>HDF Flush=1</code>)</li>
+</ol>
+
+<p><strong>For HEC-RAS 2025:</strong> stdout parsing is sufficient &mdash; <code>ras solve</code> prints <code>Progress: 100%</code> and <code>Computations completed in Xm Xs</code>.</p>
+
+<h3>Unknown 3: Error Reporting</h3>
+
+<table>
+<thead><tr><th>Failure Mode</th><th>Detection</th><th>Recovery</th></tr></thead>
+<tbody>
+<tr><td>Clean failure (solver error)</td><td>Non-zero exit code</td><td>Retry or skip</td></tr>
+<tr><td>Silent failure (bad results)</td><td>Volume accounting error in <code>.bco</code> / HDF &gt; threshold</td><td>Flag for review</td></tr>
+<tr><td>Crash (access violation)</td><td>Exit codes 157, -1073741571</td><td>Retry; check file locks</td></tr>
+<tr><td>Hang (infinite loop)</td><td>Timeout watchdog</td><td>Kill process tree (<code>taskkill /F /T /PID</code>)</td></tr>
+<tr><td>Partial output</td><td>No <code>.p##.hdf</code> produced</td><td>Retry</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-warning">
+<strong>Critical:</strong> Kill the process tree, not just Ras.exe. It spawns child processes (<code>RASGeomPreprocess.exe</code>, <code>RasUnsteady.exe</code>, <code>RasProcess.exe</code>).
+</div>
+
+<h3>Unknown 4: Progress Feedback</h3>
+
+<p><strong>HEC-RAS 6.x:</strong> No stdout output. Monitor the <code>.bco</code> file:</p>
+<ul>
+<li>Enable <code>Write Detailed= 1</code> in <code>.p##</code> plan file before launch</li>
+<li>Poll <code>.bco</code> every 0.5&ndash;1.0 seconds using <code>seek()</code> to read only new content</li>
+<li>Parse simulation time from timestep messages</li>
+<li>Estimate progress: <code>(current_time - start_time) / (end_time - start_time)</code></li>
+</ul>
+
+<p><strong>HEC-RAS 2025:</strong> stdout provides <code>Progress: XX%</code> directly.</p>
+
+<h3>Unknown 5: Adopt ras-commander or Roll Our Own?</h3>
+
+<div class="callout callout-success">
+<strong>Verdict: Learn from it, do not depend on it.</strong>
+</div>
+
+<table>
+<thead><tr><th>Factor</th><th>Assessment</th></tr></thead>
+<tbody>
+<tr><td>CLI execution pattern</td><td>Proven, validated &mdash; copy the approach</td></tr>
+<tr><td>Distributed execution</td><td>Well-designed worker abstraction &mdash; study as reference</td></tr>
+<tr><td>Maturity</td><td>Pre-1.0, solo developer, 90 releases in 17 months, no test suite</td></tr>
+<tr><td>Dependencies</td><td>15+ packages including geopandas/GDAL &mdash; incompatible with our zero-dep core</td></tr>
+<tr><td>License</td><td>MIT &mdash; compatible</td></tr>
+<tr><td>Bus factor</td><td>1 (William Katzenmeyer)</td></tr>
+</tbody>
+</table>
+
+<p><strong>What to extract:</strong></p>
+<ul>
+<li>CLI invocation: <code>Ras.exe -c</code> via <code>subprocess.Popen()</code> (from <code>RasCmdr.compute_plan()</code>)</li>
+<li><code>.bco</code> monitoring: poll pattern with seek (from <code>RasBco.BcoMonitor</code>)</li>
+<li>HDF verification: check <code>"Complete Process"</code> in compute messages (from <code>HdfResultsPlan</code>)</li>
+<li>Worker abstraction: remote worker interface design (from <code>remote/RasWorker.py</code>)</li>
+</ul>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s3">3. Use Case 1: Cloud (Azure / AWS)</h2>
+
+<h3>Architecture: Azure Batch / AWS Batch with Spot VMs</h3>
+
+<p>Both platforms support the identical pattern:</p>
+
+<pre><code>Upload project to object storage (S3 / Blob)
+    &rarr; Batch service provisions Spot VMs from custom image (HEC-RAS pre-installed)
+        &rarr; Each VM downloads its plan, runs Ras.exe -c, uploads results
+            &rarr; Orchestrator collects results, notifies on completion
+                &rarr; VMs auto-terminate (scale to 0)</code></pre>
+
+<h3>Cost Comparison (100 plans &times; 2 hours each, HEC-RAS 6.6)</h3>
+
+<table>
+<thead><tr><th></th><th>AWS</th><th>Azure</th></tr></thead>
+<tbody>
+<tr><td><strong>Recommended VM</strong></td><td>c5.4xlarge (16 vCPU, 32 GB)</td><td>D8s_v5 (8 vCPU, 32 GB)</td></tr>
+<tr><td><strong>On-Demand (Windows)</strong></td><td>~$210</td><td>~$129</td></tr>
+<tr><td><strong>Spot (Windows)</strong></td><td>~$80</td><td>~$33</td></tr>
+<tr><td><strong>Batch service</strong></td><td>Free</td><td>Free</td></tr>
+<tr><td><strong>Storage</strong></td><td>~$12/mo (S3)</td><td>~$5/mo (Blob)</td></tr>
+<tr><td><strong>Orchestration</strong></td><td>Step Functions (~$0.50)</td><td>Built-in Batch</td></tr>
+</tbody>
+</table>
+
+<h3>Future with HEC-RAS 2025 (Linux + GPU)</h3>
+
+<table>
+<thead><tr><th></th><th>AWS</th><th>Azure</th></tr></thead>
+<tbody>
+<tr><td><strong>GPU VM</strong></td><td>g5.xlarge (A10G, 24 GB)</td><td>NC4as_T4_v3 (T4, 16 GB)</td></tr>
+<tr><td><strong>Spot cost</strong></td><td>~$0.35/hr</td><td>~$0.24/hr</td></tr>
+<tr><td><strong>100 plans &times; ~12 min (GPU)</strong></td><td>~$5&ndash;18</td><td>~$5</td></tr>
+<tr><td><strong>Linux savings</strong></td><td>30&ndash;45% cheaper (no Windows license)</td><td>Same</td></tr>
+</tbody>
+</table>
+
+<h3>Key Facts</h3>
+<ul>
+<li><strong>HEC-RAS is public domain</strong> &mdash; zero licensing restrictions on cloud deployment</li>
+<li><strong>USACE themselves</strong> are building a cloud compute framework on AWS (<code>USACE/cloudcompute</code>)</li>
+<li>Existing Docker images: <code>slawler/ras-docker</code> (USACE-affiliated)</li>
+<li><strong>Spot is safe</strong>: HEC-RAS plans are independent and restartable; Batch auto-retries on eviction</li>
+<li><strong>Cloud is NOT cheaper per-simulation than local hardware</strong> &mdash; the value is parallelism (100+ simultaneous)</li>
+</ul>
+
+<h3>When to Use Cloud</h3>
+<ul>
+<li>Infrequent but massive batches (200+ plans, several times per year)</li>
+<li>Need results ASAP (all 500 plans finish in 2 hours wall-clock instead of days)</li>
+<li>No upfront capital expenditure desired</li>
+<li>Testing HEC-RAS 2025 on Linux/GPU without buying hardware</li>
+</ul>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s4">4. Use Case 2: Colleague Laptops (Corporate Network)</h2>
+
+<h3>Recommended Approach: Phased</h3>
+
+<p><strong>Phase 1 (zero IT friction): SMB shared drive file queue</strong></p>
+<ul>
+<li>Central machine writes job files to <code>\\SERVER\hecras_queue\</code></li>
+<li>Worker machines poll/watch the folder, pick up jobs using atomic file rename as lock</li>
+<li>Workers copy project to local disk, run <code>Ras.exe -c</code>, write results to <code>\\SERVER\hecras_results\</code></li>
+<li>No firewall changes, no admin rights, no special services</li>
+</ul>
+
+<p><strong>Phase 2 (low IT friction): HTTP worker service</strong></p>
+<ul>
+<li>Lightweight FastAPI/Flask worker on each machine (packaged as .exe via PyInstaller)</li>
+<li>Central orchestrator posts jobs via HTTP</li>
+<li>Worker downloads files, runs simulation, uploads results</li>
+<li>Web dashboard shows progress across all machines</li>
+<li>One firewall port exception per machine (or fall back to file queue)</li>
+</ul>
+
+<p><strong>Phase 3 (nice-to-have): Wake-on-LAN + auto-retry</strong></p>
+<ul>
+<li>Wake sleeping machines via WoL packets</li>
+<li>Automatic retry on failure</li>
+<li>Result validation</li>
+<li>Teams/Slack notification on completion</li>
+</ul>
+
+<div class="callout callout-danger">
+<strong>Critical Constraint:</strong> HEC-RAS MUST execute from local disk, not network share. HDF5 random I/O over SMB is 5&ndash;10&times; slower and unreliable. Every approach must: (1) copy project files to worker's local <code>%TEMP%\HECRAS_xxxx\</code>, (2) run simulation locally, (3) copy results back to network share. This maps directly to our existing <code>file_ops.py</code> temp directory isolation pattern.
+</div>
+
+<h3>Distribution Approaches Ranked</h3>
+
+<table>
+<thead><tr><th>Rank</th><th>Approach</th><th>IT Friction</th><th>Reliability</th><th>Setup Time</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>HTTP Worker Service</td><td>Low (1 firewall port)</td><td>High</td><td>2&ndash;4 weeks</td></tr>
+<tr><td>2</td><td>Shared Drive File Queue</td><td>Zero</td><td>Medium</td><td>1&ndash;2 weeks</td></tr>
+<tr><td>3</td><td>Python <code>multiprocessing.managers</code></td><td>Zero</td><td>Medium</td><td>1&ndash;2 weeks</td></tr>
+<tr><td>4</td><td>ZeroMQ</td><td>Low (1 port)</td><td>High</td><td>2&ndash;3 weeks</td></tr>
+<tr><td>5</td><td>WinRM</td><td>Medium&ndash;High</td><td>High</td><td>2&ndash;4 weeks</td></tr>
+<tr><td>6</td><td>SSH (OpenSSH)</td><td>Medium</td><td>High</td><td>2&ndash;3 weeks</td></tr>
+<tr><td>7</td><td>Dask Distributed</td><td>Low</td><td>Medium</td><td>2&ndash;3 weeks</td></tr>
+<tr style="background: var(--danger)"><td>8</td><td>PSExec</td><td><strong>Do not use</strong></td><td>&mdash;</td><td>&mdash;</td></tr>
+</tbody>
+</table>
+
+<h3>Network Probe Results (Live Scan &mdash; 2026-02-19)</h3>
+
+<div class="callout callout-info">
+<strong>Actual probe run</strong> against <code>192.168.111.0/24</code> (Arx Engineering office, Dubai). 35 hosts discovered, 34 remote. Domain: <code>PINI</code>. Duration: 56 seconds.
+</div>
+
+<table>
+<thead><tr><th>Approach</th><th>Rating</th><th>Hosts</th><th>Finding</th></tr></thead>
+<tbody>
+<tr style="background: var(--success)"><td><strong>SMB Network Shares</strong></td><td style="color:green;font-weight:bold">GREEN</td><td>28</td><td>All 28 workstations have port 445 open. 3 have visible <code>Users</code> shares. This is the clear winner for Phase 1.</td></tr>
+<tr style="background: var(--danger)"><td><strong>WinRM / PS Remoting</strong></td><td style="color:red;font-weight:bold">RED</td><td>0</td><td>Port 5985 closed on every host. WinRM service stopped locally too. Would require IT to enable via GPO.</td></tr>
+<tr><td><strong>SSH (OpenSSH)</strong></td><td style="color:#cc7700;font-weight:bold">YELLOW</td><td>1</td><td>Only 192.168.111.1 (the Ubiquiti router, banner <code>SSH-2.0-uiCGN</code>). No workstations have SSH.</td></tr>
+<tr><td><strong>HTTP Worker (custom)</strong></td><td style="color:#cc7700;font-weight:bold">YELLOW</td><td>28 potential</td><td>Not deployed yet. All 28 SMB-capable machines are candidates. Requires installing worker .exe.</td></tr>
+<tr><td><strong>RDP</strong></td><td style="color:#cc7700;font-weight:bold">YELLOW</td><td>25</td><td>Open on 25 hosts &mdash; confirms they are general-purpose workstations. Interactive only, not for automation.</td></tr>
+</tbody>
+</table>
+
+<h3>Network Topology Discovered</h3>
+
+<pre><code>192.168.111.0/24  (Arx Engineering Office LAN — Dubai)
+  .1     [Router]     SSH-2.0-uiCGN (Ubiquiti gateway)
+  .2     DESKTOP-DN52QV0    SMB RDP WMI
+  .3     DESKTOP-OJ2NNR0    SMB RDP WMI  share:Users
+  .4     DESKTOP-GEU577D    SMB RDP WMI
+  .5     [unresolved]       SMB RDP
+  .6     DESKTOP-AF3MNF5    ** THIS MACHINE ** (David.Kennewell)
+  .7     DESKTOP-0APC00O    SMB RDP WMI
+  .8     DESKTOP-KKCQHMN    SMB RDP WMI
+  .9     [unresolved]       SMB RDP
+  .10    DESKTOP-QS0QNLA    SMB RDP WMI
+  .11    DESKTOP-O24I687    SMB RDP WMI
+  .12    [unresolved]       SMB only (no RDP)
+  .13    BeytDem            SMB RDP WMI
+  .14    [unresolved]       SMB RDP
+  .15    [unresolved]       SMB RDP
+  .16    DESKTOP-VQQ2FTG    SMB RDP WMI
+  .17    [unresolved]       SMB only (no RDP)
+  .18    DESKTOP-DG6DVBE    SMB RDP WMI
+  .19    DESKTOP-CC0H6D6    SMB RDP WMI
+  .20    DESKTOP-VE3DORL    SMB RDP WMI  share:Users
+  .21    MAC-7828A9         [Mac — no Windows services]
+  .22    [unresolved]       [no ports open]
+  .23    [unresolved]       SMB RDP
+  .24    DESKTOP-AJCG9JE    SMB RDP WMI
+  .26    DESKTOP-P7H2V51    SMB RDP WMI
+  .27    DESKTOP-M5C2U5A    SMB RDP WMI
+  .28    [unresolved]       SMB RDP
+  .29    [unresolved]       SMB RDP
+  .30    [unresolved]       SMB only (no RDP)
+  .31    DESKTOP-KHERB3P    SMB RDP WMI
+  .32    DESKTOP-EJPIQCF    SMB RDP WMI  share:Users
+  .33    DESKTOP-RAIL       SMB RDP WMI
+  .34    [unresolved]       [no ports open — mobile/IoT?]
+  .35    LT0380             [no ports open — laptop with firewall?]
+  .255   [broadcast]</code></pre>
+
+<div class="callout callout-success">
+<strong>Conclusion for colleague laptop distribution:</strong>
+<ul style="margin-bottom:0">
+<li><strong>28 Windows workstations</strong> available on the office LAN with SMB access</li>
+<li><strong>SMB shared drive file queue</strong> is the only viable immediate approach (WinRM/SSH unavailable)</li>
+<li>Each machine would need: HEC-RAS installed, a lightweight worker script, and a shared folder path</li>
+<li>Fallback: HTTP worker service (.exe) deployed to each machine with one firewall port</li>
+<li>WinRM could be enabled network-wide via GPO &mdash; discuss with IT if needed for Phase 2</li>
+</ul>
+</div>
+
+<p><em>Raw probe data: <code>docs/network_probe_results.json</code> | Probe script: <code>src/network_probe.py</code></em></p>
+
+<h3>When to Use Colleague Laptops</h3>
+<ul>
+<li>Regular overnight batch runs (50&ndash;200 plans)</li>
+<li>No budget for server hardware or cloud costs</li>
+<li>Machines already have HEC-RAS installed</li>
+<li>5&ndash;10 available machines provides meaningful parallelism</li>
+</ul>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s5">5. Use Case 3: Dedicated On-Premise Server</h2>
+
+<h3>Recommended Build: Tier 2 ($15,250)</h3>
+
+<table>
+<thead><tr><th>Component</th><th>Specification</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td>CPU</td><td>AMD Threadripper PRO 7975WX (32 cores, 4.0 GHz)</td><td>$5,500</td></tr>
+<tr><td>RAM</td><td>256 GB DDR5-5600 ECC</td><td>$1,200</td></tr>
+<tr><td>GPU 1</td><td>NVIDIA RTX 4090 (24 GB)</td><td>$2,800</td></tr>
+<tr><td>GPU 2</td><td>NVIDIA RTX 4090 (24 GB) &mdash; optional</td><td>$2,800</td></tr>
+<tr><td>Boot SSD</td><td>1 TB NVMe Gen4</td><td>$100</td></tr>
+<tr><td>Work SSD</td><td>4 TB NVMe Gen4 (sim working space)</td><td>$350</td></tr>
+<tr><td>Results</td><td>8 TB SATA SSD</td><td>$500</td></tr>
+<tr><td>PSU</td><td>1600W 80+ Platinum</td><td>$400</td></tr>
+<tr><td>Case + Cooling</td><td>Full tower + 360mm AIO</td><td>$450</td></tr>
+<tr><td>UPS</td><td>1500VA line-interactive</td><td>$300</td></tr>
+<tr><td>OS</td><td><strong>Windows 11 Pro for Workstations</strong></td><td>$350</td></tr>
+</tbody>
+</table>
+
+<div class="callout callout-warning">
+<strong>Why Windows 11 Pro, not Server:</strong> HEC-RAS 2025 GPU solver requires Windows 11, not Server. Also $4,850 cheaper in licensing.
+</div>
+
+<h3>Capacity</h3>
+
+<table>
+<thead><tr><th>Mode</th><th>Concurrent Jobs</th><th>Throughput</th></tr></thead>
+<tbody>
+<tr><td>CPU only (6.6)</td><td>8 plans (4 cores each)</td><td>~96 plans/day (2hr each)</td></tr>
+<tr><td>GPU only (2025)</td><td>2 plans (1 per GPU)</td><td>~240 plans/day (12min each)</td></tr>
+<tr><td>Hybrid</td><td>6 CPU + 2 GPU</td><td>~330 plans/day</td></tr>
+</tbody>
+</table>
+
+<h3>Job Queue Architecture</h3>
+<p><strong>Recommended: SQLite + FastAPI</strong></p>
+<ul>
+<li>SQLite for persistent job queue (survives reboots)</li>
+<li>FastAPI serves web dashboard + REST API + WebSocket progress</li>
+<li><code>ProcessPoolExecutor</code> manages worker processes</li>
+<li>Engineers submit jobs via browser (<code>http://hecras-server:8000</code>)</li>
+</ul>
+
+<h3>3-Year TCO Comparison</h3>
+
+<table>
+<thead><tr><th></th><th>On-Premise (Tier 2)</th><th>AWS On-Demand</th><th>AWS Reserved</th><th>AWS Spot</th></tr></thead>
+<tbody>
+<tr><td>Year 1</td><td>$16,750</td><td>$35,160</td><td>$21,000</td><td>$8,320</td></tr>
+<tr><td>Year 2</td><td>$1,500</td><td>$35,160</td><td>$21,000</td><td>$8,320</td></tr>
+<tr><td>Year 3</td><td>$1,500</td><td>$35,160</td><td>$21,000</td><td>$8,320</td></tr>
+<tr style="font-weight:bold"><td>3-Year Total</td><td>$19,750</td><td>$105,480</td><td>$63,000</td><td>$24,960</td></tr>
+</tbody>
+</table>
+
+<p>On-premise pays for itself in <strong>5&ndash;6 months</strong> vs cloud on-demand. Cloud Spot is competitive only for infrequent use.</p>
+
+<h3>When to Use On-Premise</h3>
+<ul>
+<li>Sustained daily workloads (50+ plans/week consistently)</li>
+<li>Need GPU acceleration for HEC-RAS 2025</li>
+<li>Want predictable costs (no per-run charges)</li>
+<li>Data sensitivity concerns about cloud</li>
+<li>Can justify $15k capex</li>
+</ul>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s6">6. HEC-RAS 2025: The Game Changer</h2>
+
+<h3>What's Confirmed</h3>
+
+<table>
+<thead><tr><th>Feature</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Complete C#.NET rewrite</td><td>Confirmed (5+ years in development)</td></tr>
+<tr><td>Alpha publicly available</td><td>Yes (since Sept 2024, ~90 MB portable zip)</td></tr>
+<tr><td>GPU solver (NVIDIA CUDA 12.4)</td><td>Yes (14&ndash;35&times; speedup confirmed)</td></tr>
+<tr><td>New CLI (<code>ras prepare</code> + <code>ras solve</code>)</td><td>Confirmed and documented</td></tr>
+<tr><td>New <code>.ras</code> HDF5 project format</td><td>Confirmed (breaking change from <code>.prj</code> text)</td></tr>
+<tr><td>Linux headless execution</td><td>Design goal, demonstrated</td></tr>
+<tr><td>COM Controller</td><td><strong>Not present</strong> in 2025</td></tr>
+<tr><td>DSS7 only (DSS6 dropped)</td><td>Confirmed</td></tr>
+<tr><td>Docker + S3 integration</td><td>Design goal</td></tr>
+<tr><td>C# API (replacing COM)</td><td>In development, no public docs yet</td></tr>
+</tbody>
+</table>
+
+<h3>What's NOT Ready Yet</h3>
+
+<table>
+<thead><tr><th>Gap</th><th>Expected</th></tr></thead>
+<tbody>
+<tr><td>Implicit 2D solver</td><td>~2027</td></tr>
+<tr><td>1D solver</td><td>Not in current roadmap</td></tr>
+<tr><td>Full function parity with 6.x</td><td>~2027&ndash;2028</td></tr>
+<tr><td>Stable file format</td><td>Not yet (still changing in alpha)</td></tr>
+<tr><td>Linux GPU support</td><td>Planned but not shipped</td></tr>
+<tr><td>Official v1.0 release</td><td>Target Fall 2025, likely slipping</td></tr>
+</tbody>
+</table>
+
+<h3>Impact on Our Architecture</h3>
+
+<table>
+<thead><tr><th>Component</th><th>HEC-RAS 6.x</th><th>HEC-RAS 2025</th></tr></thead>
+<tbody>
+<tr><td><code>parser.py</code></td><td>Text files (.prj/.p##/.g##/.u##)</td><td><strong>Rewrite needed</strong> &mdash; HDF5-based <code>.ras</code> format</td></tr>
+<tr><td><code>runner.py</code></td><td>COM or <code>Ras.exe -c</code></td><td><code>ras prepare</code> + <code>ras solve</code> subprocess</td></tr>
+<tr><td><code>file_ops.py</code></td><td>Copy entire project dir to temp</td><td><strong>Simplified</strong> &mdash; <code>prepare</code> produces single <code>.h5</code></td></tr>
+<tr><td>Dependencies</td><td><code>pywin32</code> for COM</td><td><strong>None</strong> &mdash; subprocess only</td></tr>
+<tr><td>Distributed compute</td><td>Copy project dir to worker</td><td>Copy single <code>.h5</code> to worker (ideal)</td></tr>
+<tr><td>Progress monitoring</td><td>Poll <code>.bco</code> file</td><td>Parse stdout (<code>Progress: XX%</code>)</td></tr>
+</tbody>
+</table>
+
+<h3>Strategy: Support Both</h3>
+
+<p>HEC-RAS 6.x will remain in production for years (implicit solver gap, 1D gap, model recalibration required). Design a <strong>version-aware runner</strong>:</p>
+
+<pre><code>if hecras_version >= "2025":
+    # New CLI: prepare + solve
+    run_ras2025(project_ras, plan_name, output_h5)
+else:
+    # Legacy CLI: Ras.exe -c
+    run_ras6x(project_prj, plan_pXX)</code></pre>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s7">7. ras-commander: Learn, Don't Adopt</h2>
+
+<table>
+<thead><tr><th>Aspect</th><th>Assessment</th></tr></thead>
+<tbody>
+<tr><td><strong>CLI execution</strong></td><td>Validated &mdash; <code>Ras.exe -c</code> via subprocess is correct</td></tr>
+<tr><td><strong>Temp dir isolation</strong></td><td>Same pattern as ours &mdash; validates our approach</td></tr>
+<tr><td><strong>Remote execution</strong></td><td>Well-designed worker abstraction (PsExec, SSH, WinRM, Docker, AWS, Azure)</td></tr>
+<tr><td><strong>HDF reading</strong></td><td>Comprehensive (derived from FEMA's <code>rashdf</code>)</td></tr>
+<tr><td><strong>Dependencies</strong></td><td>15+ packages (geopandas, scipy, xarray&hellip;) &mdash; incompatible with our zero-dep core</td></tr>
+<tr><td><strong>Maturity</strong></td><td>0.89.1, solo developer, no test suite, API unstable</td></tr>
+<tr><td><strong>License</strong></td><td>MIT &mdash; no restrictions</td></tr>
+</tbody>
+</table>
+
+<p><strong>Use it as a reference implementation. Don't add it to our dependency chain.</strong></p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s8">8. Architecture Recommendation</h2>
+
+<h3>The Unified Runner</h3>
+
+<p>Refactor <code>runner.py</code> into a <strong>backend-agnostic execution layer</strong>:</p>
+
+<pre><code>SimulationJob (input)
+    &boxv;
+    &boxvr;&boxh;&boxh; LocalBackend (this machine)
+    &boxv;   &boxvr;&boxh;&boxh; ras6x_cli()    &rarr; Ras.exe -c
+    &boxv;   &boxvr;&boxh;&boxh; ras2025_cli()  &rarr; ras prepare + ras solve
+    &boxv;   &boxur;&boxh;&boxh; ras6x_com()    &rarr; legacy COM (kept for compatibility)
+    &boxv;
+    &boxvr;&boxh;&boxh; NetworkBackend (colleague laptops)
+    &boxv;   &boxvr;&boxh;&boxh; http_worker()  &rarr; POST to remote FastAPI worker
+    &boxv;   &boxur;&boxh;&boxh; smb_queue()    &rarr; drop job file on shared drive
+    &boxv;
+    &boxur;&boxh;&boxh; CloudBackend (Azure / AWS)
+        &boxvr;&boxh;&boxh; azure_batch()  &rarr; submit to Azure Batch
+        &boxur;&boxh;&boxh; aws_batch()    &rarr; submit to AWS Batch
+    &boxv;
+SimulationResult (output)</code></pre>
+
+<h3>What Stays the Same</h3>
+<ul>
+<li><code>parser.py</code> &mdash; unchanged for 6.x (new parser needed for 2025, but later)</li>
+<li><code>file_ops.py</code> &mdash; temp dir isolation pattern preserved; extended for network/cloud copy</li>
+<li><code>SimulationJob</code> / <code>SimulationResult</code> dataclasses &mdash; backend-agnostic already</li>
+<li>GUI / CLI entry points &mdash; just select backend</li>
+</ul>
+
+<h3>Monitoring Architecture</h3>
+
+<pre><code>PRE-LAUNCH:
+  &bull; Patch plan: Write Detailed= 1 (6.x only)
+  &bull; Record time window from plan file
+
+DURING:
+  &bull; 6.x: Poll .bco file every 0.5s, estimate progress from timestep
+  &bull; 2025: Parse stdout for Progress: XX%
+  &bull; Both: Timeout watchdog, process tree management
+
+POST:
+  &bull; Check exit code (non-zero = hard failure)
+  &bull; Verify .p##.hdf exists
+  &bull; Read HDF compute messages, check "Complete Process"
+  &bull; Parse volume accounting error %
+  &bull; Extract per-process timing</code></pre>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s9">9. Cost Comparison Matrix</h2>
+
+<h3>Per-Run Cost (100 plans &times; 2 hours each)</h3>
+
+<table>
+<thead><tr><th>Deployment</th><th>HEC-RAS 6.6 (today)</th><th>HEC-RAS 2025 GPU (future)</th></tr></thead>
+<tbody>
+<tr><td><strong>Colleague laptops (10 machines)</strong></td><td>$0 (20hr wall-clock)</td><td>$0 (2hr wall-clock)</td></tr>
+<tr><td><strong>On-premise server (Tier 2)</strong></td><td>~$1 electricity</td><td>~$0.50 electricity</td></tr>
+<tr><td><strong>Azure Spot</strong></td><td>~$33</td><td>~$5</td></tr>
+<tr><td><strong>AWS Spot</strong></td><td>~$80</td><td>~$5&ndash;18</td></tr>
+<tr><td><strong>Azure On-Demand</strong></td><td>~$129</td><td>~$40</td></tr>
+<tr><td><strong>AWS On-Demand</strong></td><td>~$210</td><td>~$50</td></tr>
+</tbody>
+</table>
+
+<h3>3-Year Total Cost of Ownership (weekly batch runs)</h3>
+
+<table>
+<thead><tr><th>Deployment</th><th>Setup Cost</th><th>Annual Cost</th><th>3-Year Total</th></tr></thead>
+<tbody>
+<tr><td><strong>Colleague laptops</strong></td><td>~$2k (software dev)</td><td>$0</td><td>~$2,000</td></tr>
+<tr><td><strong>On-premise server</strong></td><td>~$15k (hardware)</td><td>~$1.5k</td><td>~$19,500</td></tr>
+<tr><td><strong>Cloud Spot (Azure)</strong></td><td>~$3k (infra setup)</td><td>~$1.7k (52 runs)</td><td>~$8,100</td></tr>
+<tr><td><strong>Cloud On-Demand</strong></td><td>~$3k (infra setup)</td><td>~$6.7k (52 runs)</td><td>~$23,100</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s10">10. Implementation Roadmap</h2>
+
+<h3>Phase 1: CLI Migration (Weeks 1&ndash;3)</h3>
+<p><strong>Goal:</strong> Replace COM with CLI in <code>runner.py</code></p>
+<ol>
+<li>Add <code>run_hecras_cli()</code> function: <code>subprocess.Popen("Ras.exe -c ...")</code></li>
+<li>Add <code>.bco</code> file monitor thread for progress</li>
+<li>Add HDF verification (<code>"Complete Process"</code> check)</li>
+<li>Add timeout watchdog with process tree kill</li>
+<li>Keep COM as fallback (feature flag)</li>
+<li>Update <code>check_hecras_installed()</code> to find <code>Ras.exe</code> path</li>
+<li>Remove <code>pywin32</code> as hard dependency (make optional)</li>
+<li>Test with <code>small_project_01</code> (4 plans)</li>
+</ol>
+
+<h3>Phase 2: Local Parallelism Upgrade (Weeks 3&ndash;5)</h3>
+<p><strong>Goal:</strong> Improve parallel execution on single machine</p>
+<ol>
+<li>Replace <code>multiprocessing.Process</code> + Queue with <code>concurrent.futures.ProcessPoolExecutor</code></li>
+<li>Add CPU core affinity (pin plans to core groups)</li>
+<li>Add proper progress reporting to GUI</li>
+<li>Fix known bugs (queue drain race, suffix bug, exit code propagation)</li>
+<li>Run 66 unit tests + 2 integration tests</li>
+</ol>
+
+<h3>Phase 3: Network Distribution (Weeks 5&ndash;9)</h3>
+<p><strong>Goal:</strong> Run plans on colleague laptops</p>
+<ol>
+<li>Build network probe script (test what's available)</li>
+<li>Implement SMB file queue (Phase 1 &mdash; zero friction)</li>
+<li>Build HTTP worker service (Phase 2 &mdash; better monitoring)</li>
+<li>Package worker as PyInstaller <code>.exe</code></li>
+<li>Build simple web dashboard (FastAPI + SQLite)</li>
+<li>Test with 2&ndash;3 machines</li>
+</ol>
+
+<h3>Phase 4: Cloud Integration (Weeks 9&ndash;13)</h3>
+<p><strong>Goal:</strong> Burst to cloud for large batches</p>
+<ol>
+<li>Build custom Windows AMI/image with HEC-RAS 6.6</li>
+<li>Set up Azure Batch (or AWS Batch) with Spot pool</li>
+<li>Add <code>CloudBackend</code> to runner (S3/Blob upload &rarr; Batch submit &rarr; collect results)</li>
+<li>Test with 50+ plans</li>
+<li>Add "Run on Cloud" option to GUI</li>
+</ol>
+
+<h3>Phase 5: HEC-RAS 2025 Support (When Stable)</h3>
+<p><strong>Goal:</strong> Add 2025 as an execution target</p>
+<ol>
+<li>Implement <code>ras prepare</code> + <code>ras solve</code> backend</li>
+<li>Build new HDF5-based project parser for <code>.ras</code> format</li>
+<li>Test GPU execution on on-premise server</li>
+<li>Switch cloud backend to Linux containers + GPU VMs</li>
+<li>Maintain 6.x compatibility (version-aware dispatch)</li>
+</ol>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2 id="s11">11. Sources</h2>
+
+<h3>Official USACE Documentation</h3>
+<ul>
+<li><a href="https://www.hec.usace.army.mil/software/hec-ras/2025/">HEC-RAS 2025 Official Page</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/hecnews/fall-2024/future-of-hec-ras">Future of HEC-RAS (HEC News Fall 2024)</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/hecras/latest/gpu-solver">HEC-RAS GPU Solver Documentation</a></li>
+<li><a href="https://www.hec.usace.army.mil/software/hec-ras/documentation/HEC-RAS_ComputerPerformance.pdf">HEC-RAS Computer Performance Guide</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/rasdocs/rasum/latest/working-with-hec-ras/parallelization-cpu-affinity">HEC-RAS Parallelization &amp; CPU Affinity</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/rasdocs/r2dum/6.6/running-a-model-with-2d-flow-areas/computation-progress-numerical-stability-and-volume-accounting">HEC-RAS Computation Progress &amp; Volume Accounting</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/rasdocs/rasum/6.6/working-with-projects">HEC-RAS File Types</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/hecras/latest/release-notes">HEC-RAS 2025 Release Notes</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/hecras/latest/quick-start-guide">HEC-RAS 2025 Quick Start Guide</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/cloud-compute">USACE Cloud Compute Home</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/cloud-compute/cloud-compute-architecture">USACE Cloud Compute Architecture</a></li>
+<li><a href="https://www.hec.usace.army.mil/confluence/rasdocs/rasum/latest/working-with-hec-ras/linux-computation-engines">HEC-RAS Linux Computation Engines</a></li>
+</ul>
+
+<h3>Community &amp; Third-Party</h3>
+<ul>
+<li><a href="https://github.com/gpt-cmdr/ras-commander">ras-commander on GitHub</a> (MIT, v0.89.1)</li>
+<li><a href="https://pypi.org/project/ras-commander/">ras-commander on PyPI</a></li>
+<li><a href="https://github.com/USACE/cloudcompute">USACE/cloudcompute on GitHub</a></li>
+<li><a href="https://github.com/slawler/ras-docker">slawler/ras-docker</a> &mdash; Docker images for HEC-RAS</li>
+<li><a href="https://github.com/Dewberry/hecrasio">Dewberry/hecrasio</a> &mdash; HEC-RAS result reading</li>
+<li><a href="https://github.com/gpt-cmdr/HEC-Commander/blob/main/Blog/7._Benchmarking_Is_All_You_Need.md">HEC-Commander Benchmarking Study</a></li>
+<li><a href="https://medium.com/@mohor.gartner/run-simulation-from-command-prompt-hec-ras-2025-alpha-f2fb1aa1d353">Run HEC-RAS 2025 from Command Prompt (Medium)</a></li>
+<li><a href="https://www.cambridge.org/core/journals/cambridge-prisms-water/article/optimisation-of-hardware-setups-for-timeefficient-hecras-simulations/07319F2414594E811859A1042D044F7C">Hardware Optimization for HEC-RAS (Cambridge Prisms)</a></li>
+</ul>
+
+<h3>Cloud Provider Documentation</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/azure/batch/batch-technical-overview">Azure Batch Technical Overview</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/batch/batch-spot-vms">Azure Batch Spot VMs</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/batch/quick-run-python">Azure Batch Python Quickstart</a></li>
+<li><a href="https://docs.aws.amazon.com/batch/latest/userguide/">AWS Batch User Guide</a></li>
+<li><a href="https://aws.amazon.com/blogs/compute/orchestrating-high-performance-computing-with-aws-step-functions-and-aws-batch/">AWS Step Functions + Batch Orchestration</a></li>
+<li><a href="https://aws.amazon.com/ec2/spot/pricing/">AWS EC2 Spot Pricing</a></li>
+<li><a href="https://azure.microsoft.com/en-us/pricing/details/virtual-machines/windows/">Azure VM Pricing</a></li>
+</ul>
+
+<h3>Project Internal</h3>
+<ul>
+<li><code>docs/network_probe_design.md</code> &mdash; Network probe script design</li>
+<li><code>docs/distributed_execution_research.md</code> &mdash; Windows network distribution detailed analysis</li>
+<li><code>docs/hecras_automation_ecosystem.md</code> &mdash; Tool ecosystem survey</li>
+<li><code>docs/architecture.md</code> &mdash; Current system architecture</li>
+<li><code>docs/codebase_analysis.md</code> &mdash; Known issues and test gaps</li>
+</ul>
+
+</body>
+</html>
