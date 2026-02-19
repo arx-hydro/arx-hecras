@@ -151,10 +151,10 @@
     </Layer>
   </Plans>
   <EventConditions>
-    <Layer Name="unsteady01" Type="RASEventConditions" Filename=".\small_project_01.u01.hdf" />
-    <Layer Name="unsteady02" Type="RASEventConditions" Filename=".\small_project_01.u02.hdf" />
-    <Layer Name="unsteady03" Type="RASEventConditions" Filename=".\small_project_01.u03.hdf" />
-    <Layer Name="unsteady04" Type="RASEventConditions" Filename=".\small_project_01.u04.hdf" />
+    <Layer Name="unsteady_01" Type="RASEventConditions" Filename=".\small_project_01.u01.hdf" />
+    <Layer Name="unsteady_02" Type="RASEventConditions" Filename=".\small_project_01.u02.hdf" />
+    <Layer Name="unsteady_03" Type="RASEventConditions" Filename=".\small_project_01.u03.hdf" />
+    <Layer Name="unsteady_04" Type="RASEventConditions" Filename=".\small_project_01.u04.hdf" />
   </EventConditions>
   <Results>
     <Layer Name="plan_01" Type="RASResults" Checked="True" Filename=".\small_project_01.p01.hdf">
