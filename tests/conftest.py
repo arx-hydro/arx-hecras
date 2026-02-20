@@ -12,6 +12,14 @@ PROJECT_PRJ = REPO_ROOT / "test_projects" / "small_project_01.prj"
 SYNTHETIC_PRJ = TESTS_DIR / "synthetic" / "minimal.prj"
 
 
+@pytest.fixture(scope="session")
+def qapp():
+    """Shared QApplication instance for tests that need Qt."""
+    from PyQt6.QtWidgets import QApplication
+
+    return QApplication.instance() or QApplication([])
+
+
 @pytest.fixture
 def prtest1_prj() -> Path:
     """Path to the small_project_01 project file."""

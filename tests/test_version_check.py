@@ -4,35 +4,39 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from hecras_runner.version_check import VersionInfo, _parse_version, check_for_update, is_outdated
+import pytest
+
+from hecras_runner.version_check import VersionInfo, check_for_update, is_outdated, parse_version
 
 
 class TestParseVersion:
-    def test_simple(self):
-        assert _parse_version("0.1.0") == (0, 1, 0)
-
-    def test_higher(self):
-        assert _parse_version("1.10.3") == (1, 10, 3)
-
-    def test_non_numeric_segment_stops(self):
-        assert _parse_version("1.2.beta") == (1, 2)
-
-    def test_single_segment(self):
-        assert _parse_version("5") == (5,)
+    @pytest.mark.parametrize(
+        ("version_str", "expected"),
+        [
+            ("0.1.0", (0, 1, 0)),
+            ("1.10.3", (1, 10, 3)),
+            ("1.2.beta", (1, 2)),
+            ("5", (5,)),
+        ],
+        ids=["simple", "higher", "non-numeric-stops", "single"],
+    )
+    def test_parse(self, version_str, expected):
+        assert parse_version(version_str) == expected
 
 
 class TestIsOutdated:
-    def test_outdated(self):
-        assert is_outdated("0.1.0", "0.2.0") is True
-
-    def test_current(self):
-        assert is_outdated("0.2.0", "0.2.0") is False
-
-    def test_ahead(self):
-        assert is_outdated("0.3.0", "0.2.0") is False
-
-    def test_major_bump(self):
-        assert is_outdated("0.9.9", "1.0.0") is True
+    @pytest.mark.parametrize(
+        ("current", "latest", "expected"),
+        [
+            ("0.1.0", "0.2.0", True),
+            ("0.2.0", "0.2.0", False),
+            ("0.3.0", "0.2.0", False),
+            ("0.9.9", "1.0.0", True),
+        ],
+        ids=["outdated", "current", "ahead", "major-bump"],
+    )
+    def test_is_outdated(self, current, latest, expected):
+        assert is_outdated(current, latest) is expected
 
 
 class TestCheckForUpdate:

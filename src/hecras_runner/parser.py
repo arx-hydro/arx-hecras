@@ -98,8 +98,12 @@ def parse_plan_file(path: str, key: str) -> PlanEntry | None:
                 sim_end = f"{parts[2]},{parts[3]}"
 
     return PlanEntry(
-        key=key, title=title, geom_ref=geom_ref, flow_ref=flow_ref,
-        sim_start=sim_start, sim_end=sim_end,
+        key=key,
+        title=title,
+        geom_ref=geom_ref,
+        flow_ref=flow_ref,
+        sim_start=sim_start,
+        sim_end=sim_end,
     )
 
 

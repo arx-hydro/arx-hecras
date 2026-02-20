@@ -18,7 +18,7 @@ class VersionInfo:
     release_notes: str
 
 
-def _parse_version(v: str) -> tuple[int, ...]:
+def parse_version(v: str) -> tuple[int, ...]:
     """Parse a version string like '0.2.0' into a tuple of ints."""
     parts: list[int] = []
     for segment in v.split("."):
@@ -31,7 +31,7 @@ def _parse_version(v: str) -> tuple[int, ...]:
 
 def is_outdated(current: str, latest: str) -> bool:
     """Return True if *current* is older than *latest*."""
-    return _parse_version(current) < _parse_version(latest)
+    return parse_version(current) < parse_version(latest)
 
 
 def check_for_update(

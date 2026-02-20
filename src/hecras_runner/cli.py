@@ -8,8 +8,9 @@ import signal
 import sys
 import time
 
+from hecras_runner.discovery import check_hecras_installed, find_hecras_exe
 from hecras_runner.parser import parse_project
-from hecras_runner.runner import SimulationJob, check_hecras_installed, run_simulations
+from hecras_runner.runner import SimulationJob, run_simulations
 
 
 def _build_run_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -278,7 +279,6 @@ def _run_worker_job(
 def _worker_command(args: argparse.Namespace) -> int:
     """Handle the 'worker' subcommand — claim and run jobs from the DB queue."""
     from hecras_runner.db import DbClient
-    from hecras_runner.runner import find_hecras_exe
     from hecras_runner.settings import load_settings
 
     settings = load_settings()
@@ -318,8 +318,7 @@ def _worker_command(args: argparse.Namespace) -> int:
 
         print(f"Worker {worker.worker_id} online ({worker.hostname})")
         print(
-            f"Polling for jobs every {args.poll_interval}s"
-            f" (max concurrent: {args.max_concurrent})"
+            f"Polling for jobs every {args.poll_interval}s (max concurrent: {args.max_concurrent})"
         )
 
         while not shutdown:
@@ -339,7 +338,10 @@ def _worker_command(args: argparse.Namespace) -> int:
                 _run_worker_job(job, ras_exe, args, db, settings)
             except Exception as e:
                 db.complete_job(
-                    job_id, success=False, elapsed_seconds=0.0, error_message=str(e),
+                    job_id,
+                    success=False,
+                    elapsed_seconds=0.0,
+                    error_message=str(e),
                 )
                 print(f"  Job {job_id}: ERROR ({e})")
 

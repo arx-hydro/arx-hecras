@@ -75,7 +75,8 @@ def verify_hdf_completion(hdf_path: str) -> bool:
                     for attr_name in group.attrs:
                         val = group.attrs[attr_name]
                         text = (
-                            val if isinstance(val, str)
+                            val
+                            if isinstance(val, str)
                             else val.decode("utf-8", errors="replace")
                             if isinstance(val, bytes)
                             else str(val)
@@ -110,8 +111,18 @@ def verify_hdf_completion(hdf_path: str) -> bool:
 
 # Month abbreviations used by HEC-RAS (case-insensitive)
 _MONTH_MAP = {
-    "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
-    "JUL": 7, "AUG": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12,
+    "JAN": 1,
+    "FEB": 2,
+    "MAR": 3,
+    "APR": 4,
+    "MAY": 5,
+    "JUN": 6,
+    "JUL": 7,
+    "AUG": 8,
+    "SEP": 9,
+    "OCT": 10,
+    "NOV": 11,
+    "DEC": 12,
 }
 
 # .bco format: "01Jan2024  00:00:00"
@@ -121,7 +132,7 @@ _BCO_DT_RE = re.compile(r"(\d{2})(\w{3})(\d{4})\s+(\d{2}):(\d{2}):(\d{2})")
 _PLAN_DT_RE = re.compile(r"(\d{2})(\w{3})(\d{4}),(\d{4})")
 
 
-def _parse_hecras_datetime(s: str) -> datetime | None:
+def parse_hecras_datetime(s: str) -> datetime | None:
     """Parse a HEC-RAS datetime string into a :class:`datetime`.
 
     Supports two formats:
@@ -146,6 +157,7 @@ def _parse_hecras_datetime(s: str) -> datetime | None:
         if h == 24:
             h, mi = 0, 0
             from datetime import timedelta
+
             dt = datetime(int(year), month, int(day), 0, 0, int(second))
             return dt + timedelta(days=1)
         return datetime(int(year), month, int(day), h, mi, int(second))
@@ -161,6 +173,7 @@ def _parse_hecras_datetime(s: str) -> datetime | None:
         if h == 24:
             h, mi = 0, 0
             from datetime import timedelta
+
             dt = datetime(int(year), month, int(day), 0, 0, 0)
             return dt + timedelta(days=1)
         return datetime(int(year), month, int(day), h, mi, 0)
@@ -186,9 +199,9 @@ def compute_progress(
 
     Returns 0.0 if any timestamp cannot be parsed or if the range is zero.
     """
-    current = _parse_hecras_datetime(current_ts)
-    start = _parse_hecras_datetime(start_ts)
-    end = _parse_hecras_datetime(end_ts)
+    current = parse_hecras_datetime(current_ts)
+    start = parse_hecras_datetime(start_ts)
+    end = parse_hecras_datetime(end_ts)
 
     if current is None or start is None or end is None:
         return 0.0
@@ -202,9 +215,7 @@ def compute_progress(
 
 
 # Pattern: "01Jan2024  00:00:00" or similar timestamps in .bco files
-_BCO_TIMESTAMP_RE = re.compile(
-    r"(\d{2}\w{3}\d{4}\s+\d{2}:\d{2}:\d{2})"
-)
+_BCO_TIMESTAMP_RE = re.compile(r"(\d{2}\w{3}\d{4}\s+\d{2}:\d{2}:\d{2})")
 
 
 def parse_bco_timestep(line: str) -> str | None:

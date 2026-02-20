@@ -162,7 +162,7 @@ def results_to_share(
         if not os.path.isfile(src):
             continue
 
-        if _is_result_file(filename, plan_suffix):
+        if is_result_file(filename, plan_suffix):
             dst = os.path.join(share_results_dir, filename)
             shutil.copy2(src, dst)
             copied.append(filename)
@@ -191,7 +191,7 @@ def results_from_share(
         if not os.path.isfile(src):
             continue
 
-        if _is_result_file(filename, plan_suffix):
+        if is_result_file(filename, plan_suffix):
             dst = os.path.join(main_dir, filename)
             shutil.copy2(src, dst)
             copied.append(filename)
@@ -200,7 +200,7 @@ def results_from_share(
     return copied
 
 
-def _is_result_file(filename: str, plan_suffix: str) -> bool:
+def is_result_file(filename: str, plan_suffix: str) -> bool:
     """Check if a filename matches result extension+suffix patterns."""
     lower = filename.lower()
 

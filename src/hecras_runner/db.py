@@ -94,9 +94,7 @@ class DbClient:
             try:
                 current = self._get_schema_version(conn)
                 if current < _CURRENT_SCHEMA_VERSION:
-                    self._log(
-                        f"Migrating schema from v{current} to v{_CURRENT_SCHEMA_VERSION}"
-                    )
+                    self._log(f"Migrating schema from v{current} to v{_CURRENT_SCHEMA_VERSION}")
                     self._apply_migrations(conn, current)
                     conn.commit()
             finally:
@@ -141,12 +139,11 @@ class DbClient:
                 f"""
                 INSERT INTO {_SCHEMA}.workers
                     (hostname, ip_address, os_version, hecras_version, hecras_path,
-                     max_concurrent, status)
-                VALUES (%s, %s, %s, %s, %s, %s, 'idle')
+                     max_concurrent, status, last_heartbeat)
+                VALUES (%s, %s, %s, %s, %s, %s, 'idle', now())
                 RETURNING id
                 """,
-                (hostname, ip_address, os_version, hecras_version, hecras_path,
-                 max_concurrent),
+                (hostname, ip_address, os_version, hecras_version, hecras_path, max_concurrent),
             ).fetchone()
             conn.commit()
 
@@ -345,8 +342,7 @@ class DbClient:
                     progress = CASE WHEN %s THEN 1.0 ELSE progress END
                 WHERE id = %s
                 """,
-                (status, elapsed_seconds, error_message, exit_code, hdf_verified,
-                 success, job_id),
+                (status, elapsed_seconds, error_message, exit_code, hdf_verified, success, job_id),
             )
 
             # Check if all jobs in batch are done
@@ -405,6 +401,7 @@ class DbClient:
         The callback receives the notification payload string.
         Returns the thread (already started).
         """
+
         def _listen() -> None:
             try:
                 import psycopg

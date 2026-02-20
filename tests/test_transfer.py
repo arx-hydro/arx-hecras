@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from hecras_runner.transfer import (
-    _is_result_file,
     cleanup_share_job,
     compute_terrain_hash,
+    is_result_file,
     project_to_share,
     results_from_share,
     results_to_share,
@@ -49,9 +51,7 @@ class TestProjectToShare:
         share = tmp_path / "share"
         share.mkdir()
 
-        manifest = project_to_share(
-            str(prj), str(share), "job-001", "01", log=_nolog
-        )
+        manifest = project_to_share(str(prj), str(share), "job-001", "01", log=_nolog)
 
         assert manifest.job_id == "job-001"
         assert manifest.plan_suffix == "01"
@@ -61,9 +61,7 @@ class TestProjectToShare:
         assert len(manifest.files) > 0
 
         # Verify manifest JSON
-        manifest_data = json.loads(
-            (Path(manifest.share_project_dir) / "manifest.json").read_text()
-        )
+        manifest_data = json.loads((Path(manifest.share_project_dir) / "manifest.json").read_text())
         assert manifest_data["job_id"] == "job-001"
 
     def test_copies_terrain_directory(self, tmp_path: Path):
@@ -106,9 +104,7 @@ class TestResultsToShare:
         (local / "test.prj").write_text("project")  # should NOT be copied
 
         results_dir = tmp_path / "results"
-        copied = results_to_share(
-            str(local / "test.prj"), str(results_dir), "01", log=_nolog
-        )
+        copied = results_to_share(str(local / "test.prj"), str(results_dir), "01", log=_nolog)
 
         assert "test.p01" in copied
         assert "test.p01.hdf" in copied
@@ -134,29 +130,26 @@ class TestResultsFromShare:
         assert (main / "test.p02.hdf").exists()
 
     def test_missing_directory(self, tmp_path: Path):
-        copied = results_from_share(
-            str(tmp_path / "nonexistent"), str(tmp_path), "01", log=_nolog
-        )
+        copied = results_from_share(str(tmp_path / "nonexistent"), str(tmp_path), "01", log=_nolog)
         assert copied == []
 
 
 class TestIsResultFile:
-    def test_plan_file(self):
-        assert _is_result_file("test.p01", "01") is True
-
-    def test_hdf_file(self):
-        assert _is_result_file("test.p01.hdf", "01") is True
-
-    def test_bco_file(self):
-        assert _is_result_file("test.bco01", "01") is True
-
-    def test_non_result_file(self):
-        assert _is_result_file("test.prj", "01") is False
-        assert _is_result_file("test.rasmap", "01") is False
-
-    def test_wrong_suffix(self):
-        assert _is_result_file("test.p02", "01") is False
-        assert _is_result_file("test.p01", "02") is False
+    @pytest.mark.parametrize(
+        ("filename", "suffix", "expected"),
+        [
+            ("test.p01", "01", True),
+            ("test.p01.hdf", "01", True),
+            ("test.bco01", "01", True),
+            ("test.prj", "01", False),
+            ("test.rasmap", "01", False),
+            ("test.p02", "01", False),
+            ("test.p01", "02", False),
+        ],
+        ids=["plan", "hdf", "bco", "prj", "rasmap", "wrong-plan-suffix", "wrong-suffix"],
+    )
+    def test_is_result_file(self, filename, suffix, expected):
+        assert is_result_file(filename, suffix) is expected
 
 
 class TestVerifyTransfer:

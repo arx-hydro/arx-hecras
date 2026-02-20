@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib
 import os
 import re
-import shutil
 import subprocess
 import threading
 import time
@@ -13,18 +12,15 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from multiprocessing import Process, Queue
 
+from hecras_runner.discovery import (  # noqa: F401
+    HECRAS_PROGID,
+    check_hecras_installed,
+    find_hecras_exe,
+    find_hecras_processes,
+    open_parent_instance,
+    refresh_parent_instance,
+)
 from hecras_runner.file_ops import cleanup_temp_dir, copy_project_to_temp, copy_results_back
-
-HECRAS_PROGID = "RAS66.HECRASController"
-
-# Known HEC-RAS install locations (newest first)
-_COMMON_PATHS = [
-    r"C:\Program Files\HEC\HEC-RAS\6.6\Ras.exe",
-    r"C:\Program Files\HEC\HEC-RAS\6.5\Ras.exe",
-    r"C:\Program Files\HEC\HEC-RAS\6.4.1\Ras.exe",
-    r"C:\Program Files (x86)\HEC\HEC-RAS\6.6\Ras.exe",
-    r"C:\Program Files (x86)\HEC\HEC-RAS\6.5\Ras.exe",
-]
 
 
 @dataclass
@@ -46,6 +42,7 @@ class SimulationResult:
     elapsed_seconds: float
     error_message: str | None = None
     files_copied: list[str] = field(default_factory=list)
+    compute_messages: str = ""
 
 
 @dataclass
@@ -58,153 +55,10 @@ class ProgressMessage:
     elapsed_seconds: float
 
 
-# ── HEC-RAS discovery ──
-
-
-def find_hecras_exe(log: Callable[[str], None] = print) -> str | None:
-    """Locate the HEC-RAS executable (Ras.exe).
-
-    Search order:
-    1. Windows registry (``HKLM\\SOFTWARE\\HEC\\HEC-RAS``)
-    2. ``shutil.which("Ras.exe")`` (PATH lookup)
-    3. Common installation paths
-    """
-    # 1. Registry scan
-    try:
-        import winreg
-
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\HEC\HEC-RAS") as reg_key:
-            i = 0
-            versions: list[str] = []
-            while True:
-                try:
-                    versions.append(winreg.EnumKey(reg_key, i))
-                    i += 1
-                except OSError:
-                    break
-
-            if versions:
-                latest = sorted(versions)[-1]
-                try:
-                    with winreg.OpenKey(reg_key, latest) as ver_key:
-                        install_dir, _ = winreg.QueryValueEx(ver_key, "InstallDir")
-                    candidate = os.path.join(install_dir, "Ras.exe")
-                    if os.path.isfile(candidate):
-                        log(f"Found HEC-RAS via registry: {candidate}")
-                        return candidate
-                except Exception:
-                    pass
-    except Exception:
-        pass
-
-    # 2. PATH lookup
-    which_result = shutil.which("Ras.exe")
-    if which_result:
-        log(f"Found HEC-RAS on PATH: {which_result}")
-        return which_result
-
-    # 3. Common paths
-    for path in _COMMON_PATHS:
-        if os.path.isfile(path):
-            log(f"Found HEC-RAS at common path: {path}")
-            return path
-
-    log("HEC-RAS executable not found")
-    return None
-
-
-def check_hecras_installed(
-    backend: str = "cli",
-    log: Callable[[str], None] = print,
-) -> bool:
-    """Check if HEC-RAS is available for the given backend.
-
-    Parameters
-    ----------
-    backend : str
-        ``"cli"`` checks for Ras.exe; ``"com"`` checks for COM server.
-    """
-    if backend == "cli":
-        return find_hecras_exe(log=log) is not None
-
-    # COM backend
-    try:
-        pythoncom = importlib.import_module("pythoncom")
-        win32com_client = importlib.import_module("win32com.client")
-
-        pythoncom.CoInitialize()
-        try:
-            ras = win32com_client.Dispatch(HECRAS_PROGID)
-            ras.QuitRas()
-        finally:
-            pythoncom.CoUninitialize()
-        return True
-    except Exception as e:
-        log(f"HEC-RAS COM check failed: {e}")
-        return False
-
-
-# ── Parent instance management ──
-
-
-def find_hecras_processes() -> list[int]:
-    """Return PIDs of running Ras.exe processes."""
-    try:
-        result = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq Ras.exe", "/FO", "CSV", "/NH"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        pids: list[int] = []
-        for line in result.stdout.strip().splitlines():
-            # CSV format: "Ras.exe","1234","Console","1","123,456 K"
-            parts = line.split(",")
-            if len(parts) >= 2:
-                pid_str = parts[1].strip().strip('"')
-                try:
-                    pids.append(int(pid_str))
-                except ValueError:
-                    continue
-        return pids
-    except (subprocess.SubprocessError, OSError):
-        return []
-
-
-def open_parent_instance(
-    project_path: str,
-    log: Callable[[str], None] = print,
-) -> object:
-    """Open HEC-RAS via COM, load project, return controller.
-
-    The caller is responsible for COM initialization (CoInitialize) and should
-    NOT call QuitRas — this instance stays open for the user.
-    """
-    win32com_client = importlib.import_module("win32com.client")
-
-    ras = win32com_client.Dispatch(HECRAS_PROGID)
-    ras.ShowRas()
-    log(f"Opening project in HEC-RAS: {os.path.basename(project_path)}")
-    ras.Project_Open(project_path)
-    return ras
-
-
-def refresh_parent_instance(
-    ras: object,
-    project_path: str,
-    log: Callable[[str], None] = print,
-) -> None:
-    """Reopen project in existing controller to pick up new result files."""
-    try:
-        ras.Project_Open(project_path)  # type: ignore[attr-defined]
-        log("Refreshed HEC-RAS project to show new results.")
-    except Exception as e:
-        log(f"Could not refresh HEC-RAS: {e}")
-
-
 # ── CLI backend helpers ──
 
-def _set_current_plan(prj_path: str, plan_key: str) -> None:
+
+def set_current_plan(prj_path: str, plan_key: str) -> None:
     """Set ``Current Plan=`` in the .prj file so Ras.exe runs the right plan.
 
     HEC-RAS 6.6 ``-c`` always runs the current plan and ignores the plan
@@ -234,7 +88,7 @@ def _set_current_plan(prj_path: str, plan_key: str) -> None:
 _SIM_DATE_RE = re.compile(r"^Simulation Date=(.+)$", re.MULTILINE)
 
 
-def _parse_sim_dates(plan_path: str) -> tuple[str, str]:
+def parse_sim_dates(plan_path: str) -> tuple[str, str]:
     """Extract simulation start and end from ``Simulation Date=`` line.
 
     Returns ``(start, end)`` strings, e.g.
@@ -257,7 +111,7 @@ def _parse_sim_dates(plan_path: str) -> tuple[str, str]:
     return ("", "")
 
 
-def _kill_process_tree(pid: int, log: Callable[[str], None] = print) -> None:
+def kill_process_tree(pid: int, log: Callable[[str], None] = print) -> None:
     """Kill a process and all its children via ``taskkill /F /T``."""
     try:
         subprocess.run(
@@ -339,7 +193,7 @@ def run_hecras_cli(
 
     # Set current plan in .prj file — Ras.exe -c always runs the "Current Plan"
     # and ignores the plan argument in HEC-RAS 6.6.
-    _set_current_plan(project_path, plan_file)
+    set_current_plan(project_path, plan_file)
 
     # Build command — no plan arg needed since we set Current Plan in .prj
     cmd = f'"{ras_exe}" -c "{project_path}"'
@@ -365,7 +219,7 @@ def run_hecras_cli(
         patch_write_detailed(plan_path)
 
     # Parse simulation dates for .bco monitoring
-    sim_start, sim_end = _parse_sim_dates(plan_path)
+    sim_start, sim_end = parse_sim_dates(plan_path)
 
     # Start the process
     try:
@@ -399,12 +253,14 @@ def run_hecras_cli(
         _start = start
 
         def _queue_progress(fraction: float, timestamp: str) -> None:
-            progress_queue.put(ProgressMessage(
-                plan_suffix=plan_suffix,
-                fraction=fraction,
-                timestamp=timestamp,
-                elapsed_seconds=time.monotonic() - _start,
-            ))
+            progress_queue.put(
+                ProgressMessage(
+                    plan_suffix=plan_suffix,
+                    fraction=fraction,
+                    timestamp=timestamp,
+                    elapsed_seconds=time.monotonic() - _start,
+                )
+            )
 
         effective_progress_cb = _queue_progress
 
@@ -424,7 +280,7 @@ def run_hecras_cli(
         proc.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
         log(f"[{label}] Timeout after {timeout_seconds}s — killing process tree")
-        _kill_process_tree(proc.pid, log=log)
+        kill_process_tree(proc.pid, log=log)
         proc.wait(timeout=30)
         elapsed = time.monotonic() - start
         result = SimulationResult(
@@ -440,17 +296,42 @@ def run_hecras_cli(
 
     elapsed = time.monotonic() - start
 
+    # Capture all compute output (stdout, stderr, .computeMsgs.txt)
+    stdout_text = ""
+    stderr_text = ""
+    if proc.stdout:
+        stdout_text = proc.stdout.read().decode("utf-8", errors="replace").strip()
+    if proc.stderr:
+        stderr_text = proc.stderr.read().decode("utf-8", errors="replace").strip()
+
+    # Read .computeMsgs.txt from temp dir
+    compute_msgs_content = ""
+    for pattern in (
+        f"{basename}.{plan_file}.computeMsgs.txt",
+        f"{basename}.computeMsgs.txt",
+    ):
+        msgs_path = os.path.join(prj_dir, pattern)
+        if os.path.isfile(msgs_path):
+            try:
+                with open(msgs_path, encoding="utf-8", errors="replace") as f:
+                    compute_msgs_content = f.read().strip()
+            except OSError:
+                pass
+            break
+
+    compute_parts = [p for p in (stdout_text, stderr_text, compute_msgs_content) if p]
+    compute_messages = "\n".join(compute_parts)
+    # Cap at 50 KB to avoid excessive pickle overhead in parallel mode
+    if len(compute_messages) > 50000:
+        compute_messages = compute_messages[:50000] + "\n... (truncated)"
+
     # Exit code 0 is NOT reliable — verify HDF for ground truth
     success = verify_hdf_completion(hdf_path)
     error_msg = None
 
     if not success:
-        stderr_text = ""
-        if proc.stderr:
-            stderr_text = proc.stderr.read().decode("utf-8", errors="replace").strip()
-        error_msg = (
-            f"HDF completion check failed (exit code {proc.returncode})"
-            + (f": {stderr_text}" if stderr_text else "")
+        error_msg = f"HDF completion check failed (exit code {proc.returncode})" + (
+            f": {stderr_text}" if stderr_text else ""
         )
         log(f"[{label}] {error_msg}")
     else:
@@ -462,6 +343,7 @@ def run_hecras_cli(
         success=success,
         elapsed_seconds=elapsed,
         error_message=error_msg,
+        compute_messages=compute_messages,
     )
 
     if result_queue is not None:
@@ -564,6 +446,7 @@ def run_simulations(
     timeout_seconds: float = 7200.0,
     on_progress: Callable[[float, str], None] | None = None,
     progress_queue: Queue | None = None,
+    result_callback: Callable[[SimulationResult], None] | None = None,
 ) -> list[SimulationResult]:
     """Run one or more HEC-RAS simulation jobs.
 
@@ -585,6 +468,9 @@ def run_simulations(
     progress_queue : Queue, optional
         Queue for ``ProgressMessage`` objects (parallel mode). If not provided
         in parallel CLI mode, one is created automatically and discarded.
+    result_callback : callable, optional
+        Called with each ``SimulationResult`` as soon as a plan finishes,
+        before waiting for remaining plans.
     """
     project_path = os.path.abspath(project_path)
     main_dir = os.path.dirname(project_path)
@@ -643,12 +529,22 @@ def run_simulations(
                 log(f"Started {job.plan_name} in parallel")
                 processes.append(p)
 
-            for p in processes:
-                p.join()
+            # Collect results as each process finishes (enables per-plan GUI updates)
+            import queue as _queue_mod
 
-            # Collect results (one per job, blocking get is reliable after join)
-            for _ in temp_entries:
-                results.append(result_queue.get())
+            collected = 0
+            while collected < len(temp_entries):
+                try:
+                    result = result_queue.get(timeout=1.0)
+                    results.append(result)
+                    collected += 1
+                    if result_callback:
+                        result_callback(result)
+                except _queue_mod.Empty:
+                    pass
+
+            for p in processes:
+                p.join(timeout=30)
         else:
             for temp_prj, job in temp_entries:
                 if backend == "cli":
@@ -671,6 +567,8 @@ def run_simulations(
                         plan_suffix=job.plan_suffix,
                     )
                 results.append(result)
+                if result_callback:
+                    result_callback(result)
 
         log("\nAll simulations completed.")
 

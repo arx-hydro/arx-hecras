@@ -5,9 +5,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from hecras_runner.db import (
-    _CURRENT_SCHEMA_VERSION as _SCHEMA_VERSION,
-)
-from hecras_runner.db import (
     DbClient,
     WorkerInfo,
 )
@@ -242,7 +239,7 @@ class TestDbClientMigrate:
     def test_migrate_acquires_advisory_lock(self):
         pool, conn = _make_mock_pool()
         # Schema version query returns current version (no migration needed)
-        conn.execute.return_value.fetchone.return_value = (_SCHEMA_VERSION,)
+        conn.execute.return_value.fetchone.return_value = (1,)
         client = DbClient(pool, log=_nolog)
 
         client.migrate()

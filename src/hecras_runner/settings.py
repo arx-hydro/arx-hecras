@@ -69,11 +69,13 @@ def load_settings() -> AppSettings:
     db_data = data.get("db", {})
     net_data = data.get("network", {})
 
+    # Use dataclass defaults for empty/missing values (fixes stale settings cache)
+    _db_defaults = DbSettings()
     db = DbSettings(
-        host=str(db_data.get("host", "")),
-        port=int(db_data.get("port", 5432)),
-        dbname=str(db_data.get("dbname", "hydro_arx_dev")),
-        user=str(db_data.get("user", "hecras_runner")),
+        host=str(db_data.get("host", "")) or _db_defaults.host,
+        port=int(db_data.get("port", 0)) or _db_defaults.port,
+        dbname=str(db_data.get("dbname", "")) or _db_defaults.dbname,
+        user=str(db_data.get("user", "")) or _db_defaults.user,
         password=str(db_data.get("password", "")),
     )
     network = NetworkSettings(

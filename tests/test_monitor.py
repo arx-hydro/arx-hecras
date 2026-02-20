@@ -5,10 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from hecras_runner.monitor import (
-    _parse_hecras_datetime,
     compute_progress,
     parse_bco_timestep,
+    parse_hecras_datetime,
     patch_write_detailed,
     verify_hdf_completion,
 )
@@ -84,93 +86,73 @@ class TestVerifyHdfCompletion:
 
 
 class TestParseHecrasDatetime:
-    def test_bco_format(self):
-        dt = _parse_hecras_datetime("01Jan2024  00:00:00")
-        assert dt == datetime(2024, 1, 1, 0, 0, 0)
+    @pytest.mark.parametrize(
+        ("input_str", "expected"),
+        [
+            ("01Jan2024  00:00:00", datetime(2024, 1, 1, 0, 0, 0)),
+            ("15Mar2024  12:30:45", datetime(2024, 3, 15, 12, 30, 45)),
+            ("01JAN2024,0000", datetime(2024, 1, 1, 0, 0, 0)),
+            ("02JAN2024,1200", datetime(2024, 1, 2, 12, 0, 0)),
+            ("01JAN2024,2400", datetime(2024, 1, 2, 0, 0, 0)),  # 2400 = next day midnight
+            ("31Dec2024  24:00:00", datetime(2025, 1, 1, 0, 0, 0)),
+            ("01jan2024,0000", datetime(2024, 1, 1, 0, 0, 0)),  # case insensitive
+        ],
+        ids=[
+            "bco-midnight",
+            "bco-time",
+            "plan-midnight",
+            "plan-noon",
+            "plan-2400",
+            "bco-2400-year-wrap",
+            "lowercase",
+        ],
+    )
+    def test_valid_formats(self, input_str, expected):
+        assert parse_hecras_datetime(input_str) == expected
 
-    def test_bco_format_with_time(self):
-        dt = _parse_hecras_datetime("15Mar2024  12:30:45")
-        assert dt == datetime(2024, 3, 15, 12, 30, 45)
+    def test_case_insensitive_equality(self):
+        assert parse_hecras_datetime("01jan2024,0000") == parse_hecras_datetime("01JAN2024,0000")
 
-    def test_plan_format(self):
-        dt = _parse_hecras_datetime("01JAN2024,0000")
-        assert dt == datetime(2024, 1, 1, 0, 0, 0)
-
-    def test_plan_format_with_time(self):
-        dt = _parse_hecras_datetime("02JAN2024,1200")
-        assert dt == datetime(2024, 1, 2, 12, 0, 0)
-
-    def test_plan_format_2400(self):
-        """2400 means midnight of the next day."""
-        dt = _parse_hecras_datetime("01JAN2024,2400")
-        assert dt == datetime(2024, 1, 2, 0, 0, 0)
-
-    def test_bco_format_2400(self):
-        dt = _parse_hecras_datetime("31Dec2024  24:00:00")
-        assert dt == datetime(2025, 1, 1, 0, 0, 0)
-
-    def test_case_insensitive(self):
-        dt1 = _parse_hecras_datetime("01jan2024,0000")
-        dt2 = _parse_hecras_datetime("01JAN2024,0000")
-        assert dt1 == dt2
-
-    def test_empty_string(self):
-        assert _parse_hecras_datetime("") is None
-
-    def test_invalid_string(self):
-        assert _parse_hecras_datetime("not a date") is None
-
-    def test_invalid_month(self):
-        assert _parse_hecras_datetime("01XYZ2024,0000") is None
+    @pytest.mark.parametrize(
+        "input_str",
+        ["", "not a date", "01XYZ2024,0000"],
+        ids=["empty", "garbage", "invalid-month"],
+    )
+    def test_invalid_returns_none(self, input_str):
+        assert parse_hecras_datetime(input_str) is None
 
 
 class TestComputeProgress:
-    def test_midpoint(self):
-        result = compute_progress(
-            "01Jan2024  12:00:00", "01JAN2024,0000", "02JAN2024,0000"
-        )
-        assert abs(result - 0.5) < 0.01
+    @pytest.mark.parametrize(
+        ("current", "start", "end", "expected"),
+        [
+            ("01Jan2024  12:00:00", "01JAN2024,0000", "02JAN2024,0000", 0.5),
+            ("01Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000", 0.0),
+            ("02Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000", 1.0),
+            ("03Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000", 1.0),  # clamp
+            ("31Dec2023  00:00:00", "01JAN2024,0000", "02JAN2024,0000", 0.0),  # clamp
+            ("01Jan2024  06:00:00", "01JAN2024,0000", "02JAN2024,0000", 0.25),
+        ],
+        ids=["midpoint", "start", "end", "past-end", "before-start", "quarter"],
+    )
+    def test_progress_values(self, current, start, end, expected):
+        result = compute_progress(current, start, end)
+        assert abs(result - expected) < 0.01
 
-    def test_start(self):
-        result = compute_progress(
-            "01Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
-        )
-        assert result == 0.0
-
-    def test_end(self):
-        result = compute_progress(
-            "02Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
-        )
-        assert result == 1.0
-
-    def test_past_end_clamps(self):
-        result = compute_progress(
-            "03Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
-        )
-        assert result == 1.0
-
-    def test_before_start_clamps(self):
-        result = compute_progress(
-            "31Dec2023  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
-        )
-        assert result == 0.0
-
-    def test_invalid_timestamps_return_zero(self):
-        assert compute_progress("invalid", "01JAN2024,0000", "02JAN2024,0000") == 0.0
-        assert compute_progress("01Jan2024  12:00:00", "", "02JAN2024,0000") == 0.0
-        assert compute_progress("01Jan2024  12:00:00", "01JAN2024,0000", "") == 0.0
+    @pytest.mark.parametrize(
+        ("current", "start", "end"),
+        [
+            ("invalid", "01JAN2024,0000", "02JAN2024,0000"),
+            ("01Jan2024  12:00:00", "", "02JAN2024,0000"),
+            ("01Jan2024  12:00:00", "01JAN2024,0000", ""),
+        ],
+        ids=["invalid-current", "empty-start", "empty-end"],
+    )
+    def test_invalid_timestamps_return_zero(self, current, start, end):
+        assert compute_progress(current, start, end) == 0.0
 
     def test_zero_range_returns_zero(self):
-        result = compute_progress(
-            "01Jan2024  00:00:00", "01JAN2024,0000", "01JAN2024,0000"
-        )
-        assert result == 0.0
-
-    def test_quarter_progress(self):
-        result = compute_progress(
-            "01Jan2024  06:00:00", "01JAN2024,0000", "02JAN2024,0000"
-        )
-        assert abs(result - 0.25) < 0.01
+        assert compute_progress("01Jan2024  00:00:00", "01JAN2024,0000", "01JAN2024,0000") == 0.0
 
 
 class TestParseBcoTimestep:
