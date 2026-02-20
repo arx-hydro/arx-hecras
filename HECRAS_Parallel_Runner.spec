@@ -6,7 +6,11 @@ a = Analysis(
     pathex=['src'],
     binaries=[],
     datas=[],
-    hiddenimports=['win32com', 'win32com.client', 'pythoncom', 'pywintypes'],
+    hiddenimports=[
+        'win32com', 'win32com.client', 'pythoncom', 'pywintypes',
+        'psycopg', 'psycopg.adapt', 'psycopg._encodings',
+        'psycopg_pool', 'psycopg_binary',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

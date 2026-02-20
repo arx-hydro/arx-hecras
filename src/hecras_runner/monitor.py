@@ -9,6 +9,7 @@ import os
 import re
 import time
 from collections.abc import Callable
+from datetime import datetime
 
 
 def patch_write_detailed(plan_path: str) -> bool:
@@ -105,6 +106,101 @@ def verify_hdf_completion(hdf_path: str) -> bool:
     return False
 
 
+# ── Datetime parsing and progress computation ──
+
+# Month abbreviations used by HEC-RAS (case-insensitive)
+_MONTH_MAP = {
+    "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
+    "JUL": 7, "AUG": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12,
+}
+
+# .bco format: "01Jan2024  00:00:00"
+_BCO_DT_RE = re.compile(r"(\d{2})(\w{3})(\d{4})\s+(\d{2}):(\d{2}):(\d{2})")
+
+# Plan file format: "01JAN2024,0000" or "01JAN2024,2400"
+_PLAN_DT_RE = re.compile(r"(\d{2})(\w{3})(\d{4}),(\d{4})")
+
+
+def _parse_hecras_datetime(s: str) -> datetime | None:
+    """Parse a HEC-RAS datetime string into a :class:`datetime`.
+
+    Supports two formats:
+
+    - .bco format: ``"01Jan2024  00:00:00"``
+    - Plan file format: ``"01JAN2024,0000"``
+
+    Returns None if the string cannot be parsed.
+    """
+    if not s:
+        return None
+
+    # Try .bco format first
+    m = _BCO_DT_RE.search(s)
+    if m:
+        day, mon_str, year, hour, minute, second = m.groups()
+        month = _MONTH_MAP.get(mon_str.upper())
+        if month is None:
+            return None
+        h, mi = int(hour), int(minute)
+        # HEC-RAS uses 2400 to mean midnight of next day
+        if h == 24:
+            h, mi = 0, 0
+            from datetime import timedelta
+            dt = datetime(int(year), month, int(day), 0, 0, int(second))
+            return dt + timedelta(days=1)
+        return datetime(int(year), month, int(day), h, mi, int(second))
+
+    # Try plan format
+    m = _PLAN_DT_RE.search(s)
+    if m:
+        day, mon_str, year, hhmm = m.groups()
+        month = _MONTH_MAP.get(mon_str.upper())
+        if month is None:
+            return None
+        h, mi = int(hhmm[:2]), int(hhmm[2:])
+        if h == 24:
+            h, mi = 0, 0
+            from datetime import timedelta
+            dt = datetime(int(year), month, int(day), 0, 0, 0)
+            return dt + timedelta(days=1)
+        return datetime(int(year), month, int(day), h, mi, 0)
+
+    return None
+
+
+def compute_progress(
+    current_ts: str,
+    start_ts: str,
+    end_ts: str,
+) -> float:
+    """Compute simulation progress as a fraction from 0.0 to 1.0.
+
+    Parameters
+    ----------
+    current_ts : str
+        Current simulation timestamp (from .bco).
+    start_ts : str
+        Simulation start datetime (from plan file).
+    end_ts : str
+        Simulation end datetime (from plan file).
+
+    Returns 0.0 if any timestamp cannot be parsed or if the range is zero.
+    """
+    current = _parse_hecras_datetime(current_ts)
+    start = _parse_hecras_datetime(start_ts)
+    end = _parse_hecras_datetime(end_ts)
+
+    if current is None or start is None or end is None:
+        return 0.0
+
+    total = (end - start).total_seconds()
+    if total <= 0:
+        return 0.0
+
+    elapsed = (current - start).total_seconds()
+    return max(0.0, min(1.0, elapsed / total))
+
+
 # Pattern: "01Jan2024  00:00:00" or similar timestamps in .bco files
 _BCO_TIMESTAMP_RE = re.compile(
     r"(\d{2}\w{3}\d{4}\s+\d{2}:\d{2}:\d{2})"
@@ -166,6 +262,7 @@ def monitor_bco(
                     last_timestamp = ts
 
             if last_timestamp:
-                on_progress(0.0, last_timestamp)
+                fraction = compute_progress(last_timestamp, sim_start, sim_end)
+                on_progress(fraction, last_timestamp)
 
         time.sleep(poll_interval)

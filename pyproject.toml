@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 com = ["pywin32"]
 hdf = ["h5py"]
+db = ["psycopg[binary]", "psycopg_pool"]
 dev = [
     "pytest",
     "ruff",

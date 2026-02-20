@@ -48,6 +48,16 @@ class SimulationResult:
     files_copied: list[str] = field(default_factory=list)
 
 
+@dataclass
+class ProgressMessage:
+    """Real-time progress update from a running simulation."""
+
+    plan_suffix: str
+    fraction: float
+    timestamp: str
+    elapsed_seconds: float
+
+
 # ── HEC-RAS discovery ──
 
 
@@ -270,6 +280,7 @@ def run_hecras_cli(
     log: Callable[[str], None] = print,
     on_progress: Callable[[float, str], None] | None = None,
     result_queue: Queue | None = None,
+    progress_queue: Queue | None = None,
     **_kwargs: object,
 ) -> SimulationResult:
     """Run a single HEC-RAS plan via ``Ras.exe -c``.
@@ -297,6 +308,9 @@ def run_hecras_cli(
         monitors the .bco file.
     result_queue : Queue, optional
         If provided, the result is also put onto it (for parallel mode).
+    progress_queue : Queue, optional
+        If provided, ``ProgressMessage`` objects are put onto this queue during
+        .bco monitoring (for parallel mode GUI updates).
     """
     from hecras_runner.monitor import monitor_bco, patch_write_detailed, verify_hdf_completion
 
@@ -347,7 +361,7 @@ def run_hecras_cli(
         except OSError:
             pass
 
-    if on_progress:
+    if on_progress or progress_queue is not None:
         patch_write_detailed(plan_path)
 
     # Parse simulation dates for .bco monitoring
@@ -378,12 +392,28 @@ def run_hecras_cli(
 
     # Optional .bco monitoring in a daemon thread
     monitor_thread = None
-    if on_progress and sim_start and sim_end:
+    effective_progress_cb = on_progress
+
+    # In parallel mode, wrap progress_queue into a callback
+    if progress_queue is not None and effective_progress_cb is None:
+        _start = start
+
+        def _queue_progress(fraction: float, timestamp: str) -> None:
+            progress_queue.put(ProgressMessage(
+                plan_suffix=plan_suffix,
+                fraction=fraction,
+                timestamp=timestamp,
+                elapsed_seconds=time.monotonic() - _start,
+            ))
+
+        effective_progress_cb = _queue_progress
+
+    if effective_progress_cb and sim_start and sim_end:
         bco_suffix = f"bco{plan_suffix}"
         bco_path = os.path.join(prj_dir, f"{basename}.{bco_suffix}")
         monitor_thread = threading.Thread(
             target=monitor_bco,
-            args=(bco_path, sim_start, sim_end, on_progress),
+            args=(bco_path, sim_start, sim_end, effective_progress_cb),
             kwargs={"timeout": timeout_seconds},
             daemon=True,
         )
@@ -533,6 +563,7 @@ def run_simulations(
     max_cores: int | None = None,
     timeout_seconds: float = 7200.0,
     on_progress: Callable[[float, str], None] | None = None,
+    progress_queue: Queue | None = None,
 ) -> list[SimulationResult]:
     """Run one or more HEC-RAS simulation jobs.
 
@@ -550,7 +581,10 @@ def run_simulations(
     timeout_seconds : float
         Per-plan timeout in seconds (CLI backend only, default 7200).
     on_progress : callable, optional
-        Progress callback for CLI backend.
+        Progress callback for CLI backend (sequential mode only).
+    progress_queue : Queue, optional
+        Queue for ``ProgressMessage`` objects (parallel mode). If not provided
+        in parallel CLI mode, one is created automatically and discarded.
     """
     project_path = os.path.abspath(project_path)
     main_dir = os.path.dirname(project_path)
@@ -575,6 +609,9 @@ def run_simulations(
         # 2. Run simulations
         if parallel:
             result_queue: Queue = Queue()
+            # Create progress queue for parallel CLI mode if not provided
+            if backend == "cli" and progress_queue is None:
+                progress_queue = Queue()
             processes: list[Process] = []
             for temp_prj, job in temp_entries:
                 kwargs: dict[str, object] = {"result_queue": result_queue}
@@ -585,8 +622,7 @@ def run_simulations(
                         ras_exe=ras_exe,
                         max_cores=max_cores,
                         timeout_seconds=timeout_seconds,
-                        # on_progress omitted: callbacks are not picklable
-                        # across multiprocessing.Process on Windows (spawn).
+                        progress_queue=progress_queue,
                     )
                     p = Process(
                         target=run_fn,

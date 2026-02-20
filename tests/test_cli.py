@@ -11,54 +11,67 @@ from hecras_runner.cli import build_parser, main
 class TestBuildParser:
     def test_required_project_arg(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all"])
+        args = parser.parse_args(["run", "project.prj", "--all"])
         assert args.project == "project.prj"
         assert args.run_all is True
 
     def test_plans_arg(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--plans", "plan01", "plan03"])
+        args = parser.parse_args(["run", "project.prj", "--plans", "plan01", "plan03"])
         assert args.plans == ["plan01", "plan03"]
 
     def test_list_arg(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--list"])
+        args = parser.parse_args(["run", "project.prj", "--list"])
         assert args.list_plans is True
 
     def test_sequential_and_no_cleanup(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all", "--sequential", "--no-cleanup"])
+        args = parser.parse_args(["run", "project.prj", "--all", "--sequential", "--no-cleanup"])
         assert args.sequential is True
         assert args.no_cleanup is True
 
     def test_dss_override(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all", "--dss", r"C:\path\file.dss"])
+        args = parser.parse_args(["run", "project.prj", "--all", "--dss", r"C:\path\file.dss"])
         assert args.dss == r"C:\path\file.dss"
 
     def test_use_com_flag(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all", "--use-com"])
+        args = parser.parse_args(["run", "project.prj", "--all", "--use-com"])
         assert args.use_com is True
 
     def test_use_com_default_false(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all"])
+        args = parser.parse_args(["run", "project.prj", "--all"])
         assert args.use_com is False
 
     def test_max_cores_flag(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all", "--max-cores", "4"])
+        args = parser.parse_args(["run", "project.prj", "--all", "--max-cores", "4"])
         assert args.max_cores == 4
 
     def test_timeout_flag(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all", "--timeout", "3600"])
+        args = parser.parse_args(["run", "project.prj", "--all", "--timeout", "3600"])
         assert args.timeout == 3600.0
 
     def test_timeout_default(self):
         parser = build_parser()
-        args = parser.parse_args(["project.prj", "--all"])
+        args = parser.parse_args(["run", "project.prj", "--all"])
+        assert args.timeout == 7200.0
+
+    def test_worker_subcommand(self):
+        parser = build_parser()
+        args = parser.parse_args(["worker", "--max-concurrent", "3"])
+        assert args.command == "worker"
+        assert args.max_concurrent == 3
+
+    def test_worker_defaults(self):
+        parser = build_parser()
+        args = parser.parse_args(["worker"])
+        assert args.max_concurrent == 1
+        assert args.poll_interval == 5.0
         assert args.timeout == 7200.0
 
 

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 from hecras_runner.monitor import (
+    _parse_hecras_datetime,
+    compute_progress,
     parse_bco_timestep,
     patch_write_detailed,
     verify_hdf_completion,
@@ -78,6 +81,96 @@ class TestVerifyHdfCompletion:
         data = b"\x00" * (1024 * 1024 - 8) + b"Finished Successfully" + b"\x00" * 100
         hdf.write_bytes(data)
         assert verify_hdf_completion(str(hdf)) is True
+
+
+class TestParseHecrasDatetime:
+    def test_bco_format(self):
+        dt = _parse_hecras_datetime("01Jan2024  00:00:00")
+        assert dt == datetime(2024, 1, 1, 0, 0, 0)
+
+    def test_bco_format_with_time(self):
+        dt = _parse_hecras_datetime("15Mar2024  12:30:45")
+        assert dt == datetime(2024, 3, 15, 12, 30, 45)
+
+    def test_plan_format(self):
+        dt = _parse_hecras_datetime("01JAN2024,0000")
+        assert dt == datetime(2024, 1, 1, 0, 0, 0)
+
+    def test_plan_format_with_time(self):
+        dt = _parse_hecras_datetime("02JAN2024,1200")
+        assert dt == datetime(2024, 1, 2, 12, 0, 0)
+
+    def test_plan_format_2400(self):
+        """2400 means midnight of the next day."""
+        dt = _parse_hecras_datetime("01JAN2024,2400")
+        assert dt == datetime(2024, 1, 2, 0, 0, 0)
+
+    def test_bco_format_2400(self):
+        dt = _parse_hecras_datetime("31Dec2024  24:00:00")
+        assert dt == datetime(2025, 1, 1, 0, 0, 0)
+
+    def test_case_insensitive(self):
+        dt1 = _parse_hecras_datetime("01jan2024,0000")
+        dt2 = _parse_hecras_datetime("01JAN2024,0000")
+        assert dt1 == dt2
+
+    def test_empty_string(self):
+        assert _parse_hecras_datetime("") is None
+
+    def test_invalid_string(self):
+        assert _parse_hecras_datetime("not a date") is None
+
+    def test_invalid_month(self):
+        assert _parse_hecras_datetime("01XYZ2024,0000") is None
+
+
+class TestComputeProgress:
+    def test_midpoint(self):
+        result = compute_progress(
+            "01Jan2024  12:00:00", "01JAN2024,0000", "02JAN2024,0000"
+        )
+        assert abs(result - 0.5) < 0.01
+
+    def test_start(self):
+        result = compute_progress(
+            "01Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
+        )
+        assert result == 0.0
+
+    def test_end(self):
+        result = compute_progress(
+            "02Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
+        )
+        assert result == 1.0
+
+    def test_past_end_clamps(self):
+        result = compute_progress(
+            "03Jan2024  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
+        )
+        assert result == 1.0
+
+    def test_before_start_clamps(self):
+        result = compute_progress(
+            "31Dec2023  00:00:00", "01JAN2024,0000", "02JAN2024,0000"
+        )
+        assert result == 0.0
+
+    def test_invalid_timestamps_return_zero(self):
+        assert compute_progress("invalid", "01JAN2024,0000", "02JAN2024,0000") == 0.0
+        assert compute_progress("01Jan2024  12:00:00", "", "02JAN2024,0000") == 0.0
+        assert compute_progress("01Jan2024  12:00:00", "01JAN2024,0000", "") == 0.0
+
+    def test_zero_range_returns_zero(self):
+        result = compute_progress(
+            "01Jan2024  00:00:00", "01JAN2024,0000", "01JAN2024,0000"
+        )
+        assert result == 0.0
+
+    def test_quarter_progress(self):
+        result = compute_progress(
+            "01Jan2024  06:00:00", "01JAN2024,0000", "02JAN2024,0000"
+        )
+        assert abs(result - 0.25) < 0.01
 
 
 class TestParseBcoTimestep:

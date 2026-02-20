@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from hecras_runner.runner import (
+    ProgressMessage,
     SimulationJob,
     SimulationResult,
     _kill_process_tree,
@@ -54,6 +55,23 @@ class TestSimulationResult:
         r2 = SimulationResult(plan_name="b", plan_suffix="02", success=True, elapsed_seconds=1.0)
         r1.files_copied.append("file.hdf")
         assert r2.files_copied == []
+
+
+class TestProgressMessage:
+    def test_fields(self):
+        msg = ProgressMessage(
+            plan_suffix="01", fraction=0.5, timestamp="01Jan2024  12:00:00",
+            elapsed_seconds=10.0,
+        )
+        assert msg.plan_suffix == "01"
+        assert msg.fraction == 0.5
+        assert msg.timestamp == "01Jan2024  12:00:00"
+        assert msg.elapsed_seconds == 10.0
+
+    def test_equality(self):
+        a = ProgressMessage("01", 0.5, "ts", 1.0)
+        b = ProgressMessage("01", 0.5, "ts", 1.0)
+        assert a == b
 
 
 class TestCheckHecrasInstalled:
@@ -434,6 +452,40 @@ class TestRunHecrasCli:
         mock_queue.put.assert_called_once()
         queued_result = mock_queue.put.call_args[0][0]
         assert queued_result.success is True
+
+
+    def test_progress_queue_patches_write_detailed(self, tmp_path: Path):
+        """Verify progress_queue triggers patch_write_detailed."""
+        prj = tmp_path / "test.prj"
+        prj.write_text("Proj Title=test\n")
+        plan = tmp_path / "test.p01"
+        plan.write_text("Plan Title=test\nWrite Detailed= 0 \n")
+        hdf = tmp_path / "test.p01.hdf"
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.pid = 9999
+        mock_proc.stderr = MagicMock()
+        mock_proc.stderr.read.return_value = b""
+
+        def create_hdf(timeout=None):
+            hdf.write_bytes(b"Finished Successfully")
+
+        mock_proc.wait.side_effect = create_hdf
+
+        mock_queue = MagicMock()
+
+        with patch("hecras_runner.runner.subprocess.Popen", return_value=mock_proc):
+            run_hecras_cli(
+                str(prj),
+                plan_suffix="01",
+                ras_exe=r"C:\HEC\Ras.exe",
+                progress_queue=mock_queue,
+                log=_nolog,
+            )
+
+        # Write Detailed should have been patched to 1
+        assert "Write Detailed= 1" in plan.read_text()
 
 
 class TestRunHecrasPlan:
